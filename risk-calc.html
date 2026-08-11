@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#09090b" />
+<title>部位風險計算台</title>
+<style>
+  :root{--bg:#09090b;--panel:#18181b;--panel2:#111113;--line:#27272a;--txt:#e4e4e7;--dim:#71717a;--dim2:#52525b;--amber:#fbbf24;--green:#34d399;--red:#fb7185;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;padding:16px;padding-bottom:40px;}
+  .wrap{max-width:560px;margin:0 auto;}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  h1{font-size:16px;color:var(--amber);margin:0;font-family:ui-monospace,monospace;letter-spacing:-.02em;}
+  .head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px;}
+  .head span{font-size:11px;color:var(--dim2);}
+  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:6px;padding:2px;margin-bottom:16px;}
+  .toggle button{border:0;background:transparent;color:var(--dim);font-size:13px;padding:7px 14px;border-radius:5px;font-weight:600;}
+  .toggle button.on{background:var(--amber);color:#09090b;}
+  .toggle button.on.g{background:var(--green);}
+  .toggle button.on.r{background:var(--red);}
+  .grid{display:grid;gap:10px;}
+  .g2{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:1fr 1fr 1fr;} .g4{grid-template-columns:1fr 1fr;}
+  @media(min-width:460px){.g4{grid-template-columns:repeat(4,1fr);}}
+  label{display:block;}
+  label .lb{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);}
+  .inp{margin-top:4px;display:flex;align-items:center;border:1px solid var(--line);background:var(--bg);border-radius:5px;}
+  .inp:focus-within{border-color:rgba(251,191,36,.6);}
+  .inp input{width:100%;background:transparent;border:0;color:var(--txt);padding:9px 10px;font-size:15px;outline:none;font-family:ui-monospace,monospace;}
+  .inp .sfx{padding:0 8px;font-size:12px;color:var(--dim);}
+  .hint{font-size:10px;color:var(--dim2);margin-top:2px;display:block;}
+  .stat{border:1px solid var(--line);background:rgba(24,24,27,.6);border-radius:6px;padding:10px 12px;}
+  .stat .lb{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);}
+  .stat .v{font-family:ui-monospace,monospace;font-size:18px;font-weight:700;margin-top:2px;}
+  .stat .sub{font-size:11px;color:var(--dim);margin-top:2px;}
+  .v.bad{color:var(--red);} .v.good{color:var(--green);} .v.warn{color:var(--amber);}
+  .box{border:1px solid var(--line);background:rgba(24,24,27,.4);border-radius:8px;padding:12px;}
+  .box .cap{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:6px;}
+  .note{font-size:10px;line-height:1.6;color:var(--dim2);margin:6px 0 0;}
+  .mt{margin-top:16px;} .mb{margin-bottom:10px;}
+  .kellyhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .kellyhead h2{font-size:14px;color:var(--amber);margin:0;font-family:ui-monospace,monospace;}
+  .kellyhead span{font-size:10px;color:var(--dim2);}
+  .warnbox{border:1px solid rgba(251,113,133,.4);background:rgba(251,113,133,.1);border-radius:6px;padding:10px 12px;color:#fda4af;font-size:13px;display:flex;align-items:center;}
+  .foot{text-align:center;font-size:10px;color:#3f3f46;margin-top:16px;}
+  svg{width:100%;height:150px;display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" style="display:inline-block;color:#71717a;font-size:12px;text-decoration:none;margin-bottom:8px;">← 工具選單</a>
+  <div class="head"><h1>部位風險計算台</h1><span>槓桿耗損 · 爆倉價 · Kelly</span></div>
+
+  <div class="toggle" id="modeTg">
+    <button data-m="etf" class="on">槓桿 / 反向 ETF</button>
+    <button data-m="margin">保證金部位</button>
+  </div>
+
+  <!-- ETF -->
+  <div id="etf">
+    <div class="grid g4">
+      <label><span class="lb">倍數 L</span><div class="inp"><input id="lev" type="number" value="-3"></div><span class="hint">反向填負：-3、-1</span></label>
+      <label><span class="lb">年化波動</span><div class="inp"><input id="vol" type="number" value="60"><span class="sfx">%</span></div></label>
+      <label><span class="lb">持有天數</span><div class="inp"><input id="days" type="number" value="10"><span class="sfx">日</span></div></label>
+      <label><span class="lb">標的累積漲跌</span><div class="inp"><input id="move" type="number" value="5"><span class="sfx">%</span></div></label>
+    </div>
+    <div class="grid g3 mt">
+      <div class="stat"><div class="lb">波動耗損估計</div><div class="v bad" id="o_decay">—</div><div class="sub" id="o_decaysub">—</div></div>
+      <div class="stat"><div class="lb">單日歸零點</div><div class="v bad" id="o_zero">—</div><div class="sub">標的單日反向此幅度→歸零</div></div>
+      <div class="stat"><div class="lb">日波動 σd</div><div class="v" id="o_sd">—</div><div class="sub">年化÷√252</div></div>
+    </div>
+    <div class="grid g2 mt">
+      <div class="stat"><div class="lb">乾淨單邊波段</div><div class="v" id="o_naive">—</div><div class="sub">一路走無來回≈標的×L</div></div>
+      <div class="stat"><div class="lb">來回震盪到同終點</div><div class="v" id="o_choppy">—</div><div class="sub">扣除再平衡耗損</div></div>
+    </div>
+    <div class="box mt">
+      <div class="cap">淨值耗損曲線（純震盪、零漂移）</div>
+      <svg id="curve" viewBox="0 0 300 150" preserveAspectRatio="none"></svg>
+      <p class="note">耗損 ≈ ½·L·(L−1)·σd²·天數。反向也會耗損。乾淨單邊行情耗損極小。</p>
+    </div>
+  </div>
+
+  <!-- MARGIN -->
+  <div id="margin" style="display:none">
+    <div class="toggle mb" id="dirTg">
+      <button data-d="long" class="on g">做多</button>
+      <button data-d="short">做空</button>
+    </div>
+    <div class="grid g3">
+      <label><span class="lb">進場價</span><div class="inp"><input id="entry" type="number" value="10"></div></label>
+      <label><span class="lb">槓桿倍數</span><div class="inp"><input id="mlev" type="number" value="3"><span class="sfx">×</span></div></label>
+      <label><span class="lb">維持保證金</span><div class="inp"><input id="maint" type="number" value="25"><span class="sfx">%</span></div></label>
+    </div>
+    <div class="grid g2 mt">
+      <div class="stat"><div class="lb">爆倉價</div><div class="v bad" id="o_liq">—</div><div class="sub" id="o_liqsub">—</div></div>
+      <div class="stat"><div class="lb">距爆倉幅度</div><div class="v warn" id="o_liqmove">—</div><div class="sub">標的需再變動</div></div>
+    </div>
+    <p class="note">多：進場×(1−1/L)/(1−維持率)　空：進場×(1+1/L)/(1+維持率)。未計利息、手續費與跳空滑價，實際更早。</p>
+  </div>
+
+  <!-- KELLY -->
+  <div class="box mt">
+    <div class="kellyhead"><h2>Kelly 部位建議</h2><span>f*=(p·g−q·l)/(g·l)</span></div>
+    <div class="grid g4">
+      <label><span class="lb">勝率 p</span><div class="inp"><input id="k_p" type="number" value="55"><span class="sfx">%</span></div></label>
+      <label><span class="lb">賺(每次)</span><div class="inp"><input id="k_g" type="number" value="12"><span class="sfx">%</span></div></label>
+      <label><span class="lb">賠(每次)</span><div class="inp"><input id="k_l" type="number" value="8"><span class="sfx">%</span></div></label>
+      <label><span class="lb">總資金</span><div class="inp"><input id="k_b" type="number" value="1000000"></div></label>
+    </div>
+    <div class="grid g4 mt" id="kout"></div>
+    <p class="note">全 Kelly 波動極大，實務多用 ½ 或 ¼。勝率/賺賠須是真實估計；高估勝率會直接放大爆倉機率。</p>
+  </div>
+
+  <div class="foot">估計工具，非投資建議。全部本地計算，不上傳。</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const nf=(v,d=2)=>isFinite(v)?Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
+const nf0=v=>isFinite(v)?Number(v).toLocaleString("en-US",{maximumFractionDigits:0}):"—";
+let mode="etf", dir="long";
+
+function render(){
+  const L=parseFloat($("lev").value)||0;
+  const V=(parseFloat($("vol").value)||0)/100;
+  const N=Math.max(parseFloat($("days").value)||0,0);
+  const m=(parseFloat($("move").value)||0)/100;
+  const sd=V/Math.sqrt(252);
+  const decayLog=0.5*L*(L-1)*sd*sd*N;
+  const decayPct=(1-Math.exp(-decayLog))*100;
+  const naive=L*m*100;
+  const choppy=naive-decayPct;
+  const zero=L!==0?100/Math.abs(L):Infinity;
+
+  $("o_decay").textContent="-"+nf(decayPct)+"%";
+  $("o_decay").className="v "+(decayPct>3?"bad":"warn");
+  $("o_decaysub").textContent="相對「標的×"+L+"倍」基準";
+  $("o_zero").textContent="逆向 "+nf(zero,1)+"%";
+  $("o_sd").textContent=nf(sd*100)+"%";
+  $("o_naive").textContent=(naive>=0?"":"")+nf(naive)+"%"; $("o_naive").className="v "+(naive>=0?"good":"bad");
+  $("o_choppy").textContent=nf(choppy)+"%"; $("o_choppy").className="v "+(choppy>=0?"good":"bad");
+
+  // curve
+  const steps=Math.min(Math.max(Math.round(N),1),60);
+  let pts=[],minY=100;
+  for(let t=0;t<=steps;t++){const d=0.5*L*(L-1)*sd*sd*t;const val=Math.exp(-d)*100;pts.push(val);if(val<minY)minY=val;}
+  const lo=Math.min(minY,100)*0.98, hi=100.5, W=300,H=150;
+  const path=pts.map((v,i)=>{const x=steps?i/steps*W:0;const y=H-(v-lo)/(hi-lo)*H;return (i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1);}).join(" ");
+  const base=H-(100-lo)/(hi-lo)*H;
+  $("curve").innerHTML='<line x1="0" y1="'+base.toFixed(1)+'" x2="300" y2="'+base.toFixed(1)+'" stroke="#52525b" stroke-dasharray="3 3" stroke-width="1"/><path d="'+path+'" fill="none" stroke="#fbbf24" stroke-width="2"/>';
+
+  // margin
+  const E=parseFloat($("entry").value)||0, L2=parseFloat($("mlev").value)||0, mm=(parseFloat($("maint").value)||0)/100;
+  let liq=NaN;
+  if(L2>0) liq= dir==="long"? E*((1-1/L2)/(1-mm)) : E*((1+1/L2)/(1+mm));
+  const lm= isFinite(liq)&&E? (liq-E)/E*100 : NaN;
+  $("o_liq").textContent=nf(liq,4);
+  $("o_liqsub").textContent= dir==="long"?"跌破觸發強平":"漲破觸發強平";
+  $("o_liqmove").textContent=nf(lm)+"%";
+
+  // kelly
+  const p=Math.min(Math.max((parseFloat($("k_p").value)||0)/100,0),1);
+  const g=(parseFloat($("k_g").value)||0)/100, l=(parseFloat($("k_l").value)||0)/100, B=parseFloat($("k_b").value)||0;
+  const ev=(p*g-(1-p)*l)*100;
+  let f=(g>0&&l>0)?(p*g-(1-p)*l)/(g*l):NaN;
+  const fc=isFinite(f)?Math.max(f,0):NaN;
+  let html='<div class="stat"><div class="lb">每筆期望值</div><div class="v '+(ev>0?"good":"bad")+'">'+nf(ev)+'%</div></div>';
+  if(ev<=0||!isFinite(fc)){
+    html+='<div class="warnbox" style="grid-column:span 3">無正期望值 → Kelly 建議 0，不進場</div>';
+  }else{
+    html+='<div class="stat"><div class="lb">全 Kelly</div><div class="v warn">'+nf(fc*100,1)+'%</div><div class="sub">$'+nf0(fc*B)+'</div></div>';
+    html+='<div class="stat"><div class="lb">½ Kelly（常用）</div><div class="v good">'+nf(fc*50,1)+'%</div><div class="sub">$'+nf0(fc*0.5*B)+'</div></div>';
+    html+='<div class="stat"><div class="lb">¼ Kelly（保守）</div><div class="v">'+nf(fc*25,1)+'%</div><div class="sub">$'+nf0(fc*0.25*B)+'</div></div>';
+  }
+  $("kout").innerHTML=html;
+}
+
+document.querySelectorAll("input").forEach(i=>i.addEventListener("input",render));
+$("modeTg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;
+  document.querySelectorAll("#modeTg button").forEach(x=>x.classList.toggle("on",x===b));
+  $("etf").style.display=mode==="etf"?"":"none"; $("margin").style.display=mode==="margin"?"":"none";});
+$("dirTg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;dir=b.dataset.d;
+  document.querySelectorAll("#dirTg button").forEach(x=>{x.classList.remove("on","g","r");});
+  b.classList.add("on", dir==="long"?"g":"r"); render();});
+render();
+</script>
+</body>
+</html>
