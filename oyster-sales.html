@@ -139,6 +139,11 @@
   .li-actions{display:flex; gap:8px; flex:none;}
   .mini{border:none; border-radius:10px; padding:10px 12px; font-size:16px; font-weight:800; color:#fff;}
   .mini.g{background:var(--sea);} .mini.r{background:var(--stop);} .mini.tel{background:var(--go);}
+  .call-bar{display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;
+    background:var(--go); color:#fff; text-decoration:none; border-radius:14px; padding:16px;
+    font-size:23px; font-weight:900; box-shadow:0 4px 0 var(--go-d);}
+  .call-bar:active{transform:translateY(2px); box-shadow:0 1px 0 var(--go-d);}
+  .call-bar .num{font-size:24px;}
 
   .report-sum{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;}
   .report-sum .rs{background:var(--sea); color:#fff; border-radius:16px; padding:14px;}
@@ -205,6 +210,7 @@
     <section class="screen" id="screen-qty">
       <button class="back" onclick="go('sell')">‹ 回上一頁</button>
       <div class="picked-name" id="q-name">客人</div>
+      <div id="q-call-wrap"></div>
       <div class="qty-show num"><span id="q-val">0</span><span class="qty-unit" id="q-unit">斤</span></div>
       <div class="amount-show num" id="q-amount">＝ $0</div>
 
@@ -497,9 +503,19 @@ function pickCustomer(cid){
   curJin=0; curAmountOverride=null;
   document.getElementById('q-name').textContent=curCust.name;
   document.getElementById('q-unit').textContent=DB.unit;
+  renderQCall();
   renderQuick();
   updateQty();
   go('qty');
+}
+function renderQCall(){
+  const w=document.getElementById('q-call-wrap'); w.innerHTML='';
+  if(curCust && curCust.phone){
+    const a=document.createElement('a'); a.className='call-bar'; a.style.marginTop='4px';
+    a.href='tel:'+curCust.phone;
+    a.innerHTML='📞 撥打電話　<span class="num">'+escapeHtml(curCust.phone)+'</span>';
+    w.appendChild(a);
+  }
 }
 function renderQuick(){
   const q=document.getElementById('quick-btns'); q.innerHTML='';
@@ -642,7 +658,7 @@ function chosenFromPick(cid){
   curAmountOverride=null;
   if(pendingJin!==null && pendingJin>0){ curJin=pendingJin; showConfirm(); }
   else { curJin=0; document.getElementById('q-name').textContent=curCust.name;
-    document.getElementById('q-unit').textContent=DB.unit; renderQuick(); updateQty(); go('qty'); }
+    document.getElementById('q-unit').textContent=DB.unit; renderQCall(); renderQuick(); updateQty(); go('qty'); }
 }
 
 /* ---- 中文數字解析 ---- */
@@ -763,14 +779,24 @@ function renderCustomers(){
   DB.customers.forEach(c=>{
     const s=custAllStats(c.id);
     const div=document.createElement('div'); div.className='list-item';
-    div.innerHTML='<div><div class="li-main">'+escapeHtml(c.name)+'</div>'+
-      '<div class="li-sub">'+(c.phone?('☎ '+escapeHtml(c.phone)+'　'):'')+
-      '累計 '+s.count+' 次・'+fmtJin(s.jin)+DB.unit+'</div></div>';
+    div.style.flexDirection='column'; div.style.alignItems='stretch';
+
+    const top=document.createElement('div');
+    top.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:10px;';
+    top.innerHTML='<div><div class="li-main">'+escapeHtml(c.name)+'</div>'+
+      '<div class="li-sub num">累計 '+s.count+' 次・'+fmtJin(s.jin)+DB.unit+'</div></div>';
     const act=document.createElement('div'); act.className='li-actions';
-    if(c.phone){ const t=document.createElement('a'); t.className='mini tel'; t.textContent='撥號'; t.href='tel:'+c.phone; act.appendChild(t); }
     const e=document.createElement('button'); e.className='mini g'; e.textContent='改'; e.onclick=()=>editCustomer(c.id); act.appendChild(e);
     const d=document.createElement('button'); d.className='mini r'; d.textContent='刪'; d.onclick=()=>delCustomer(c.id); act.appendChild(d);
-    div.appendChild(act); box.appendChild(div);
+    top.appendChild(act);
+    div.appendChild(top);
+
+    if(c.phone){
+      const call=document.createElement('a'); call.className='call-bar'; call.href='tel:'+c.phone;
+      call.innerHTML='📞 撥打　<span class="num">'+escapeHtml(c.phone)+'</span>';
+      div.appendChild(call);
+    }
+    box.appendChild(div);
   });
 }
 function saveCustomer(){
