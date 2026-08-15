@@ -196,7 +196,31 @@ const SEED_CARDS=[
  ["國文","「炙手可熱」比喻?","權勢極大、氣焰高","手一靠近就燙 = 勢力大"],
  ["國文","「一暴十寒」意思?","做事沒恆心,忽勤忽懶",""],
  ["英文","because 和 because of 差別?","because+句子;because of+名詞","of 後面接名詞"],
- ["英文","現在完成式結構?","have/has + 過去分詞(p.p.)",""]
+ ["英文","現在完成式結構?","have/has + 過去分詞(p.p.)",""],
+ ["基本電學","電導 G 是什麼?單位?","G = 1/R(電阻倒數),單位西門子 S","電導 = 電阻倒數"],
+ ["基本電學","導線電阻 R 與長度、截面積關係?","R = ρL/A:越長越大、越粗越小","長瘦電阻大、短胖電阻小"],
+ ["基本電學","分壓定則(串聯)?","某電阻電壓 = 總電壓 × 該電阻/總電阻","串聯分壓:誰大分得多"],
+ ["基本電學","分流定則(兩電阻並聯)?","某支路電流 = 總電流 × 對面電阻/兩阻和","並聯分流公式取「對面」那顆"],
+ ["基本電學","電池串聯 vs 並聯?","串聯:電壓相加;並聯:電壓不變、可供更大電流","串聯疊電壓、並聯撐電流"],
+ ["基本電學","交流有效值 RMS 與峰值關係?","RMS = 峰值 ÷ √2 ≈ 0.707 × 峰值","有效值約峰值的 0.707"],
+ ["基本電學","頻率 f 與週期 T 關係?","f = 1 / T","頻率與週期互為倒數"],
+ ["基本電學","電阻色碼第 3、第 4 環代表?","第3環=乘數(10的次方);第4環=誤差(金±5%、銀±10%)","三乘數、四誤差"],
+ ["基本電學","電功 W 怎麼算?","W = P × t(功率 × 時間)",""],
+ ["基本電學","惠斯登電橋平衡條件?","對角相乘相等 R1×R4 = R2×R3","對角乘積相等就平衡"],
+ ["基本電學","電功率 P 與電壓電流?","P = V × I","功率 = 電壓乘電流"],
+ ["基本電學","1kΩ、1MΩ 各是多少 Ω?","1kΩ=1000Ω;1MΩ=1,000,000Ω","k=千、M=百萬"],
+ ["電工機械","變壓器電壓、匝數、電流的關係?","V1/V2 = N1/N2 = I2/I1","電壓跟匝數同向、電流相反"],
+ ["電工機械","理想變壓器輸入 vs 輸出功率?","相等 P1 = P2(不計損失)","進多少出多少"],
+ ["電工機械","三相感應電動機同步轉速 Ns?","Ns = 120f / P(f 頻率、P 極數)","120 乘頻率、除極數"],
+ ["電工機械","感應電動機轉差率 S?","S =(Ns − Nr)/Ns","轉速差 ÷ 同步速"],
+ ["電工機械","發電機 vs 電動機的能量轉換?","發電機:機械→電;電動機:電→機械","發電生電、電動出力"],
+ ["電工機械","佛萊明右手、左手定則各用在?","右手→發電機;左手→電動機受力","右手發電、左手出力"],
+ ["電工機械","變壓器「鐵損」包含?","渦流損 + 磁滯損","鐵損 = 渦流 + 磁滯"],
+ ["電工機械","變壓器「銅損」來自?","繞組電阻的 I²R 損失","銅損 = 繞組發熱"],
+ ["電工機械","直流機換向器(整流子)作用?","維持/切換電流方向(整流)","換向器管方向"],
+ ["電工機械","三相電源 R、S、T 相位差?","彼此相差 120 度",""],
+ ["電工機械","電動機啟動瞬間電流?","很大,遠大於額定電流","一啟動電流暴衝"],
+ ["電工機械","匝數多的那一側電壓?","較高(電壓與匝數成正比)","圈多電壓高"]
 ];
 const SEED_QUIZ=[
  ["基本電學","電阻兩端 10V、電流 2A,電阻多少?",["2Ω","5Ω","20Ω","0.2Ω"],1,"歐姆定律 R=V/I=10/2=5Ω"],
@@ -218,14 +242,53 @@ const SEED_QUIZ=[
  ["數學","兩股 3、4 的直角三角形斜邊?",["5","7","6","25"],0,"3²+4²=25,√25=5"],
  ["數學","等差 2,5,8,… 第 10 項?",["29","27","32","30"],0,"2+(10−1)×3=29"],
  ["國文","「炙手可熱」比喻?",["天氣熱","權勢極大","食物燙","發燒"],1,"比喻氣焰、權勢極大"],
- ["英文","He was late ___ the rain.",["because","because of","so","although"],1,"of 後接名詞 the rain"]
+ ["英文","He was late ___ the rain.",["because","because of","so","although"],1,"of 後接名詞 the rain"],
+ ["基本電學","12V 加在 2Ω 與 4Ω 串聯,4Ω 兩端電壓?",["4V","8V","6V","12V"],1,"分壓:12×4/(2+4)=8V"],
+ ["基本電學","總電流 9A 進入 3Ω 與 6Ω 並聯,流過 3Ω 的電流?",["3A","6A","9A","4.5A"],1,"分流取對面:9×6/(3+6)=6A"],
+ ["基本電學","100Ω 通過 0.2A,消耗功率?",["2W","4W","20W","0.4W"],1,"P=I²R=0.04×100=4W"],
+ ["基本電學","週期 20ms 的交流,頻率多少?",["50Hz","20Hz","100Hz","60Hz"],0,"f=1/T=1/0.02=50Hz"],
+ ["基本電學","交流峰值 100V,有效值約?",["100V","70.7V","50V","141V"],1,"RMS=100×0.707≈70.7V"],
+ ["基本電學","5Ω 與 5Ω 並聯,總電阻?",["10Ω","2.5Ω","5Ω","1Ω"],1,"相同兩電阻並聯 = 一半 = 2.5Ω"],
+ ["基本電學","三顆 1.5V 電池串聯,總電壓?",["1.5V","4.5V","3V","6V"],1,"串聯電壓相加:1.5×3=4.5V"],
+ ["基本電學","1kΩ 電阻兩端 5V,電流多少?",["5A","5mA","0.5A","50mA"],1,"I=V/R=5/1000=0.005A=5mA"],
+ ["基本電學","電導 G 是電阻的?",["平方","倒數","兩倍","相同"],1,"G=1/R,是電阻的倒數"],
+ ["基本電學","110V、5A 的電器,功率?",["550W","22W","115W","500W"],0,"P=VI=110×5=550W"],
+ ["基本電學","色碼「紅紅棕」的電阻值?",["22Ω","220Ω","2.2kΩ","2Ω"],1,"紅2、紅2、棕(×10)=22×10=220Ω"],
+ ["基本電學","導線截面積變大,電阻會?",["變大","變小","不變","變 0"],1,"R=ρL/A,截面積越大電阻越小"],
+ ["電工機械","變壓器一次 400 匝、二次 100 匝,一次 220V,二次電壓?",["55V","880V","110V","220V"],0,"V2=V1×N2/N1=220×100/400=55V"],
+ ["電工機械","50Hz、6 極三相感應機同步轉速?",["1000 rpm","1500 rpm","500 rpm","3000 rpm"],0,"Ns=120×50/6=1000 rpm"],
+ ["電工機械","同步 1800、實際 1710,轉差率?",["5%","10%","95%","0.5%"],0,"S=(1800−1710)/1800=5%"],
+ ["電工機械","發電機把什麼轉成什麼?",["電→機械","機械→電","熱→電","電→熱"],1,"發電機:機械能→電能"],
+ ["電工機械","理想變壓器一次功率 100W,二次?",["100W","50W","200W","0W"],0,"理想無損 P1=P2=100W"],
+ ["電工機械","變壓器「鐵損」包含?",["渦流損與磁滯損","繞組電阻損","摩擦損","電刷損"],0,"鐵損 = 渦流損 + 磁滯損"],
+ ["電工機械","判斷電動機受力方向用?",["右手定則","左手定則","歐姆定律","冷次定律"],1,"電動機受力:佛萊明左手定則"],
+ ["電工機械","三相電源各相相位差?",["90 度","120 度","180 度","60 度"],1,"三相彼此相差 120 度"],
+ ["電工機械","繞組電阻造成的損失叫?",["鐵損","銅損","風損","雜散損"],1,"繞組 I²R 損失 = 銅損"],
+ ["電工機械","匝數多的一側,電壓?",["較高","較低","相同","為 0"],0,"電壓與匝數成正比,圈多電壓高"]
 ];
+const PLAN=[
+ ["2026-09","打底:基本電學+國英暖機","基本電學公式、色碼背熟;國文字音字形、英文高頻單字開始滾動"],
+ ["2026-10","基本電學題型化+電工機械公式","練分壓分流、串並聯、功率;電工機械變壓器/轉速/能量公式背起來"],
+ ["2026-11","電子學純記憶區+第一次模擬","電子學只抓元件特性、二極體/電晶體/邏輯閘;月底考一次專一限時"],
+ ["2026-12","共同科目加碼+錯題回收","國文閱讀、英文文法克漏字;清一輪錯題本;數學只練高頻基礎題型"],
+ ["2027-01","第一輪總複習(專業科目)","專一、專二各過一遍考古題;用錯題本收弱點;定案要選考哪幾科"],
+ ["2027-02","弱點強攻+第二次模擬","集中打錯題本最常錯的主題;月底整份專業科目限時模擬"],
+ ["2027-03","全科限時模擬·衝刺","每週一份選考科目限時卷,練速度與配分取捨;錯題二輪清空"],
+ ["2027-04","考前收尾·穩心態","只複習記憶卡與錯題本;調作息、看考場規則、備文具、睡飽"]
+];
+function currentPlan(){
+  const ym=todayStr().slice(0,7);
+  let idx=PLAN.findIndex(p=>p[0]===ym);
+  let soon=false;
+  if(idx<0){ if(ym<PLAN[0][0]){idx=0;soon=true;} else idx=PLAN.length-1; }
+  return {p:PLAN[idx],idx,soon};
+}
 
 /* ---------- state ---------- */
 function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function defaultState(){
   return {
-    examDate:"2027-05-02", target:45,
+    examDate:"2027-04-24", target:45,
     streak:0, lastActive:null, totalMin:0, weekMin:0, weekStart:todayStr(),
     today:{date:todayStr(), g1:false,g2:false,g3:false, min:0},
     cards:SEED_CARDS.map((c,i)=>({id:"c"+i,sub:c[0],q:c[1],a:c[2],mn:c[3],box:1,due:todayStr()})),
@@ -234,9 +297,17 @@ function defaultState(){
   };
 }
 let state;
+function mergeSeed(){
+  const haveC=new Set(state.cards.map(c=>c.id));
+  SEED_CARDS.forEach((c,i)=>{ const id="c"+i; if(!haveC.has(id)) state.cards.push({id,sub:c[0],q:c[1],a:c[2],mn:c[3],box:1,due:todayStr()}); });
+  const haveQ=new Set(state.quiz.map(q=>q.id));
+  SEED_QUIZ.forEach((q,i)=>{ const id="q"+i; if(!haveQ.has(id)) state.quiz.push({id,sub:q[0],q:q[1],opt:q[2],ans:q[3],sol:q[4],seen:0,ok:0}); });
+}
 (function init(){
   const raw=loadRaw();
   state = raw ? JSON.parse(raw) : defaultState();
+  mergeSeed();
+  if(state.examDate==="2027-05-02") state.examDate="2027-04-24"; // update old default to 116 estimate
   rolloverDay();
 })();
 function rolloverDay(){
@@ -293,6 +364,7 @@ function render(){
 /* ===== TODAY ===== */
 function renderToday(){
   const t=state.today;
+  const cp=currentPlan();
   const done=[t.g1,t.g2,t.g3].filter(Boolean).length;
   const pct=Math.round(done/3*100);
   const full=done===3;
@@ -326,6 +398,13 @@ function renderToday(){
       <div class="m"><b>${state.streak}</b><span>連續天數 🔥</span></div>
       <div class="m"><b>${t.min}</b><span>今天分鐘</span></div>
       <div class="m"><b>${state.weekMin}</b><span>本週分鐘</span></div>
+    </div>
+
+    <div class="card" style="border-left:5px solid var(--amber)">
+      <div class="eyebrow">${cp.soon?'即將開始':'本月重點'}・${cp.p[0].replace('-','/')}</div>
+      <div style="font-size:16.5px;font-weight:800;margin-top:6px">${cp.p[1]}</div>
+      <p style="font-size:13.5px;color:var(--sub);margin-top:4px">${cp.p[2]}</p>
+      <button class="btn ghost sm" data-go="more" style="margin-top:10px">看完整 8 個月計畫</button>
     </div>
 
     <div class="card">
@@ -585,8 +664,22 @@ function showAddQuiz(){
 
 /* ===== MORE / settings ===== */
 function renderMore(){
+  const cp=currentPlan();
   app.innerHTML=`
     <div class="sec-title">更多</div>
+    <div class="card">
+      <div class="eyebrow">8 個月讀書計畫</div>
+      <div style="margin-top:10px">
+        ${PLAN.map((p,i)=>`
+          <div style="display:flex;gap:11px;padding:10px 0;border-bottom:${i<PLAN.length-1?'1px solid var(--line)':'none'}">
+            <div style="flex:0 0 auto;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-weight:800;font-size:12px;line-height:1.1;text-align:center;${i===cp.idx?'background:var(--amber);color:#fff':'background:#eef2fb;color:var(--sub)'}">${p[0].slice(5).replace(/^0/,'')}<br>月</div>
+            <div style="flex:1">
+              <b style="font-size:14.5px">${p[1]}</b>
+              <p style="font-size:12.5px;color:var(--sub);margin-top:2px">${p[2]}</p>
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>
     <div class="card">
       <div class="eyebrow">考試設定</div>
       <label class="fld">統測日期</label><input type="date" id="exam" value="${state.examDate}">
