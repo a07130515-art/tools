@@ -1031,21 +1031,76 @@ function renderMockResult(){
 }
 
 /* ===== 批次匯入考古題 ===== */
+function letterToIdx(ch){const m={A:0,B:1,C:2,D:3,a:0,b:1,c:2,d:3,"Ａ":0,"Ｂ":1,"Ｃ":2,"Ｄ":3};return m[ch];}
+function parseWholePaper(text,ansText,sub){
+  const out=[]; let skipped=0;
+  // answer map: number -> letter, or ordered letter list
+  const numAns={}; let ordered=[];
+  const pairRe=/(\d{1,3})\s*[\.\、．:：\)）]?\s*([A-DＡ-Ｄ])/g; let mm, hasNum=false;
+  while((mm=pairRe.exec(ansText))){ numAns[mm[1]]=mm[2]; hasNum=true; }
+  if(!hasNum){ ordered=(ansText.match(/[A-DＡ-Ｄ]/g)||[]); }
+  // split into question blocks by leading number
+  const blocks=text.split(/(?=(?:^|\n)\s*(?:[\(（][\s　]*[\)）]\s*)?\d{1,3}\s*[\.\、．])/);
+  let orderIdx=0;
+  blocks.forEach(bk=>{
+    const raw=bk.trim(); if(!raw)return;
+    const head=raw.match(/^\s*(?:[\(（][\s　]*[\)）]\s*)?(\d{1,3})\s*[\.\、．]\s*/);
+    if(!head){ return; }
+    const num=head[1]; let body=raw.slice(head[0].length);
+    // find option markers (A)(B)(C)(D)
+    const markRe=/[\(（]\s*([A-DＡ-Ｄ])\s*[\)）]/g; const marks=[]; let m2;
+    while((m2=markRe.exec(body))){ marks.push({i:m2.index,end:markRe.lastIndex,L:m2[1]}); }
+    if(marks.length<4){ skipped++; return; }
+    const stem=body.slice(0,marks[0].i).replace(/\s+/g," ").trim();
+    const opts=[];
+    for(let k=0;k<4;k++){ const seg=body.slice(marks[k].end,(k<marks.length-1?marks[k+1].i:body.length)); opts.push(seg.replace(/\s+/g," ").replace(/[。\.]\s*$/,"").trim()); }
+    if(!stem||opts.some(o=>!o)){ skipped++; return; }
+    let ansL = hasNum ? numAns[num] : ordered[orderIdx];
+    orderIdx++;
+    const ans=letterToIdx(ansL);
+    if(ans===undefined){ skipped++; return; }
+    out.push({id:"imp"+Date.now()+"_"+num+"_"+Math.random().toString(36).slice(2,6),sub,topic:"考古題",q:stem,opt:opts,ans,sol:"(匯入考古題)",seen:0,ok:0});
+  });
+  return {out,skipped};
+}
 function showImport(){
   app.innerHTML=`
-    <div class="sec-title">批次匯入考古題</div>
+    <div class="sec-title">匯入考古題</div>
     <div class="card">
-      <p style="font-size:13.5px;color:var(--sub)">每行一題,用「|」分隔欄位:<br><b style="color:var(--ink)">科目 | 題目 | A | B | C | D | 正解 | 解析</b><br>正解填 A/B/C/D;解析可留空;以 # 開頭的行會略過。</p>
-      <div style="background:#f4f7ff;border-radius:10px;padding:10px;font-size:11.5px;margin-top:10px;font-family:monospace;overflow-x:auto;white-space:pre">基本電學|3Ω與6Ω並聯總電阻?|2Ω|9Ω|18Ω|0.5Ω|A|上乘下加
-電子學|矽二極體順向壓降約?|0V|0.3V|0.7V|5V|C|</div>
-      <label class="fld">貼上題目</label>
-      <textarea id="impText" style="min-height:150px;font-family:monospace;font-size:13px" placeholder="科目|題目|A|B|C|D|正解|解析"></textarea>
-      <button class="btn ghost sm" id="impSample" style="margin-top:10px">填入範例看格式</button>
-      <button class="btn" id="impDo" style="margin-top:10px">匯入</button>
-      <button class="btn ghost sm" id="impBack" style="margin-top:10px">返回</button>
-      <p style="font-size:12px;color:var(--sub);margin-top:10px">科目請用:基本電學、電子學、電工機械、數學、國文、英文(這樣才會分到對的類別)。匯入的題會出現在「練習」「模考」,答錯自動進「錯題」。</p>
-    </div>`;
-  $("#impSample").addEventListener("click",()=>{ $("#impText").value=`基本電學|一電阻兩端10V、電流2A,電阻?|2Ω|5Ω|20Ω|0.2Ω|B|R=V/I=10/2=5\n電子學|NPN放大時BE接面?|逆偏|順偏|開路|短路|B|放大時BE順偏\n電工機械|變壓器電壓比等於?|匝數比|電流比|功率比|電阻比|A|V1/V2=N1/N2`; });
+      <div class="eyebrow">方式一・貼整份考卷(推薦)</div>
+      <p style="font-size:13px;color:var(--sub);margin:8px 0">把整份考卷題目貼進來(含題號和 (A)(B)(C)(D)),答案另外貼。系統會自動拆題。</p>
+      <label class="fld">科目</label>
+      <select id="wpSub">${SUBJECTS.map(s=>`<option>${s}</option>`).join("")}</select>
+      <label class="fld">題目(整份貼上)</label>
+      <textarea id="wpQ" style="min-height:130px;font-size:13px" placeholder="範例:
+1. 3Ω 與 6Ω 並聯,總電阻為多少? (A)2Ω (B)9Ω (C)18Ω (D)0.5Ω
+2. 矽二極體順向壓降約多少? (A)0V (B)0.3V (C)0.7V (D)5V"></textarea>
+      <label class="fld">答案(可貼「1.A 2.C」或「AC…」)</label>
+      <textarea id="wpA" style="min-height:60px;font-size:13px" placeholder="1.A 2.C  或直接 AC"></textarea>
+      <button class="btn ghost sm" id="wpSample" style="margin-top:10px">填入範例看格式</button>
+      <button class="btn" id="wpDo" style="margin-top:10px">解析並匯入</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow">方式二・逐題用「|」分隔</div>
+      <p style="font-size:12.5px;color:var(--sub);margin:8px 0"><b style="color:var(--ink)">科目|題目|A|B|C|D|正解|解析</b>,一行一題,# 開頭略過。</p>
+      <textarea id="impText" style="min-height:90px;font-family:monospace;font-size:12.5px" placeholder="基本電學|3Ω與6Ω並聯?|2Ω|9Ω|18Ω|0.5Ω|A|上乘下加"></textarea>
+      <button class="btn ghost sm" id="impDo" style="margin-top:10px">匯入</button>
+    </div>
+    <button class="btn ghost sm" id="impBack">返回</button>
+    <p style="font-size:12px;color:var(--sub);margin-top:10px;text-align:center">科目請用:基本電學、電子學、電工機械、數學、國文、英文。匯入的題會進「練習」「模考」,答錯自動進「錯題」。整份貼上是自動拆解,格式怪的題可能會漏,匯入後可抽幾題確認。</p>`;
+  $("#wpSample").addEventListener("click",()=>{
+    $("#wpQ").value=`1. 一電阻兩端電壓 10V、電流 2A,電阻為多少? (A)2Ω (B)5Ω (C)20Ω (D)0.2Ω
+2. 矽二極體順向導通壓降約多少? (A)0V (B)0.3V (C)0.7V (D)5V
+3. 變壓器一次 200 匝、二次 50 匝,一次 100V,二次電壓? (A)400V (B)25V (C)50V (D)100V`;
+    $("#wpA").value=`1.B 2.C 3.B`;
+  });
+  $("#wpDo").addEventListener("click",()=>{
+    const {out,skipped}=parseWholePaper($("#wpQ").value||"",$("#wpA").value||"",$("#wpSub").value);
+    if(!out.length){ toast("沒有解析到題目,檢查題號與 (A)(B)(C)(D) 格式"); return; }
+    out.forEach(q=>state.quiz.push(q)); save();
+    toast(`成功匯入 ${out.length} 題`+(skipped?`,${skipped} 題格式無法辨識已略過`:" ✓"));
+    $("#wpQ").value=""; $("#wpA").value="";
+  });
   $("#impDo").addEventListener("click",()=>{
     const lines=($("#impText").value||"").split(/\r?\n/);
     let added=0; const errs=[]; const map={A:0,B:1,C:2,D:3,a:0,b:1,c:2,d:3};
@@ -1059,7 +1114,7 @@ function showImport(){
       added++;
     });
     save();
-    toast(added+" 題匯入"+(errs.length?`,${errs.length} 行有誤(第 ${errs.slice(0,5).join("、")}${errs.length>5?"…":""} 行)`:" ✓"));
+    toast(added+" 題匯入"+(errs.length?`,${errs.length} 行有誤`:" ✓"));
     if(!errs.length) $("#impText").value="";
   });
   $("#impBack").addEventListener("click",()=>renderMore());
