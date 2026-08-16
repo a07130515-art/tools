@@ -151,6 +151,7 @@ textarea{min-height:64px;resize:vertical}
   <button data-v="cards"><span class="ic">🗂️</span>記憶卡</button>
   <button data-v="quiz"><span class="ic">✏️</span>練習</button>
   <button data-v="wrong"><span class="ic">🔁</span>錯題</button>
+  <button data-v="mock"><span class="ic">📝</span>模考</button>
   <button data-v="more"><span class="ic">⚙️</span>更多</button>
 </div>
 <div class="toast" id="toast"></div>
@@ -327,6 +328,37 @@ const GEN=[
  {sub:"電子學",topic:"邏輯閘運算",make(){const A=ri(0,1),B=ri(0,1),g=pick(["AND","OR","NAND","NOR","XOR"]);let o;if(g==="AND")o=A&B;else if(g==="OR")o=A|B;else if(g==="NAND")o=1-(A&B);else if(g==="NOR")o=1-(A|B);else o=A^B;return {q:`A=${A}、B=${B},經過 ${g} 閘,輸出?`,sol:`${g}:輸入 ${A}、${B} → 輸出 ${o}`,opt:["0","1"],ans:o};}}
 ];
 function makeGen(g){const m=g.make();return {key:"g"+(genSeq++),sub:g.sub,topic:g.topic,q:m.q,opt:m.opt,ans:m.ans,sol:m.sol,gen:true};}
+const TEACH={
+ "歐姆定律":{concept:"電壓 V、電流 I、電阻 R 三者關係——電壓等於電流乘電阻。知道任兩個就能求第三個。",mnemonic:"V=IR;求誰就把誰單獨留下(R=V/I、I=V/R)。",trap:"別把除法做成乘法;電阻越大、電流反而越小。"},
+ "串聯電阻":{concept:"電阻一個接一個(串聯)時電流只有一條路,總電阻是各電阻直接相加,一定比最大那顆還大。",mnemonic:"串聯手牽手,阻值一直加。",trap:"串聯是相加,別套並聯的乘除公式。"},
+ "並聯電阻":{concept:"電阻並排(並聯)時電流有多條路,總電阻反而變小,一定比最小那顆還小。",mnemonic:"兩電阻並聯『上乘下加』:(R1×R2)/(R1+R2)。",trap:"算出來若比最小的電阻還大,一定錯了。"},
+ "分壓定則":{concept:"串聯的電阻會依大小分配總電壓,電阻越大分到的電壓越多。",mnemonic:"某電阻電壓 = 總電壓 ×(它自己 ÷ 全部相加)。",trap:"分母要用兩電阻相加,不是只放一個。"},
+ "分流定則":{concept:"電流進到並聯電路會分流,電阻小的那條分到的電流多。",mnemonic:"某支電流 = 總電流 ×(對面電阻 ÷ 兩阻相加)。",trap:"公式取『對面』那顆電阻,不是自己——最容易記反。"},
+ "電功率":{concept:"功率是每秒耗掉的電能,P=VI、P=I²R、P=V²/R 三式,看題目給什麼用哪個。",mnemonic:"三張臉:VI、I²R、V²/R。",trap:"用 I²R 時電流要先平方,別漏掉平方。"},
+ "度電計算":{concept:"1 度電 = 1000W 用 1 小時。先算瓦×小時,再除以 1000 變成度。",mnemonic:"度 =(瓦 × 小時)÷ 1000。",trap:"別忘了除以 1000。"},
+ "電荷":{concept:"電荷 Q 等於電流 I 乘上通過的時間 t。",mnemonic:"Q = I × t。",trap:"時間用秒;是相乘不是相加。"},
+ "色碼":{concept:"電阻前兩環是數字、第三環是『乘數』(10 的幾次方),前兩位數字乘上乘數就是阻值。",mnemonic:"黑棕紅橙黃綠藍紫灰白 = 0~9;第三環決定後面補幾個 0。",trap:"第三環是乘 10 的次方,不是直接當第三個數字。"},
+ "交流有效值":{concept:"交流的有效值(RMS)是能跟直流比較的等效值,約為峰值的 0.707 倍。",mnemonic:"有效值 = 峰值 ÷ √2 ≈ 峰值 × 0.707。",trap:"有效值一定比峰值小,算出來比峰值大就錯了。"},
+ "頻率週期":{concept:"頻率 f 是每秒幾個週期,週期 T 是一週期幾秒,兩者互為倒數。",mnemonic:"f = 1 ÷ T。",trap:"毫秒 ms 要先換成秒(20ms=0.02s)再取倒數。"},
+ "變壓器":{concept:"變壓器靠匝數改變電壓——哪邊圈數多哪邊電壓高,電壓比等於匝數比。",mnemonic:"V1/V2 = N1/N2(電壓跟著圈數走)。",trap:"電流相反,電壓高的那邊電流反而小。"},
+ "同步轉速":{concept:"三相感應機的同步轉速由頻率與極數決定,頻率越高越快、極數越多越慢。",mnemonic:"Ns = 120 × f ÷ P。",trap:"是『除以』極數;極數多轉速反而慢。"},
+ "轉差率":{concept:"實際轉速一定比同步轉速慢一點,慢的比例就是轉差率。",mnemonic:"S =(同步 − 實際)÷ 同步 ×100%。",trap:"分母要用同步轉速,不是實際轉速。"},
+ "二極體電流":{concept:"矽二極體順向會吃掉約 0.7V,剩下的電壓才落在電阻上,再用歐姆定律求電流。",mnemonic:"I =(電源 − 0.7)÷ 電阻。",trap:"要先扣掉 0.7V 再除電阻,別直接除。"},
+ "分壓偏壓":{concept:"電晶體用兩個電阻分壓來設定基極電壓,其實就是分壓定則的應用。",mnemonic:"VB = Vcc × R2 ÷(R1+R2)。",trap:"分母是兩電阻相加;R2 是接地那顆。"},
+ "電晶體增益":{concept:"電晶體把小小的基極電流 Ib 放大成大的集極電流 Ic,放大倍數就是 β。",mnemonic:"Ic = β × Ib。",trap:"µA 與 mA 要換算:1000µA = 1mA。"},
+ "射極電流":{concept:"射極電流 Ie 是集極電流 Ic 加上基極電流 Ib(電流在射極匯合)。",mnemonic:"Ie = Ic + Ib。",trap:"Ib 常是 µA,換成 mA 再相加。"},
+ "電壓增益":{concept:"電壓增益 Av 是輸出電壓除以輸入電壓,代表放大了幾倍。",mnemonic:"Av = Vout ÷ Vin。",trap:"輸出除以輸入,別除反了。"},
+ "增益分貝":{concept:"增益也能用分貝表示,每放大 10 倍就是 +20dB。",mnemonic:"10 倍=20dB、100 倍=40dB、1000 倍=60dB。",trap:"分貝是 20×log,不是直接等於倍數。"},
+ "邏輯閘運算":{concept:"邏輯閘依規則把 0/1 變輸出:AND 全 1 才 1、OR 有 1 就 1、NAND/NOR 是它們相反、XOR 兩個不同才 1。",mnemonic:"AND 要到齊、OR 來一個、N 開頭再反一次、XOR 不同為 1。",trap:"NAND=先 AND 再反、NOR=先 OR 再反,別忘了最後那一反。"}
+};
+function teachLines(q){
+  const t=TEACH[q.topic]||{}; let h="";
+  if(t.concept) h+=`<div style="margin-bottom:8px"><b style="color:var(--blue)">觀念</b>　${t.concept}</div>`;
+  h+=`<div><b style="color:var(--blue)">算法</b>　${q.sol}</div>`;
+  if(t.mnemonic) h+=`<div style="margin-top:8px"><b style="color:var(--amber-d)">口訣</b>　${t.mnemonic}</div>`;
+  if(t.trap) h+=`<div style="margin-top:8px"><b style="color:var(--red)">小心</b>　${t.trap}</div>`;
+  return h;
+}
 function buildQuestions(sel,n){
   const gens=GEN.filter(g=>!sel||g.sub===sel);
   const statics=shuffleArr(state.quiz.filter(q=>!sel||q.sub===sel));
@@ -335,6 +367,19 @@ function buildQuestions(sel,n){
     const staticLeft=statics.some(s=>!usedS.has(s.id));
     const useGen=gens.length && (Math.random()<0.72 || !staticLeft);
     if(useGen){ let qy,gd=0; do{qy=makeGen(pick(gens));gd++;}while(usedT.has(qy.q)&&gd<10); usedT.add(qy.q); out.push(qy); }
+    else{ const s=statics.find(q=>!usedS.has(q.id)); if(!s){ if(gens.length){out.push(makeGen(pick(gens)));continue;} else break; } usedS.add(s.id); out.push({key:s.id,statRef:s.id,sub:s.sub,topic:s.topic||"",q:s.q,opt:s.opt,ans:s.ans,sol:s.sol,gen:false}); }
+  }
+  return out;
+}
+function buildExam(subs,n){
+  const inS=s=>!subs||subs.includes(s);
+  const gens=GEN.filter(g=>inS(g.sub));
+  const statics=shuffleArr(state.quiz.filter(q=>inS(q.sub)));
+  const out=[],usedS=new Set(),usedT=new Set();
+  for(let k=0;k<n;k++){
+    const staticLeft=statics.some(s=>!usedS.has(s.id));
+    const useGen=gens.length && (Math.random()<0.55 || !staticLeft);
+    if(useGen){ let qy,gd=0; do{qy=makeGen(pick(gens));gd++;}while(usedT.has(qy.q)&&gd<12); usedT.add(qy.q); out.push(qy); }
     else{ const s=statics.find(q=>!usedS.has(q.id)); if(!s){ if(gens.length){out.push(makeGen(pick(gens)));continue;} else break; } usedS.add(s.id); out.push({key:s.id,statRef:s.id,sub:s.sub,topic:s.topic||"",q:s.q,opt:s.opt,ans:s.ans,sol:s.sol,gen:false}); }
   }
   return out;
@@ -349,7 +394,7 @@ function defaultState(){
     today:{date:todayStr(), g1:false,g2:false,g3:false, min:0},
     cards:SEED_CARDS.map((c,i)=>({id:"c"+i,sub:c[0],q:c[1],a:c[2],mn:c[3],box:1,due:todayStr()})),
     quiz:SEED_QUIZ.map((q,i)=>({id:"q"+i,sub:q[0],q:q[1],opt:q[2],ans:q[3],sol:q[4],seen:0,ok:0})),
-    wrong:[]
+    wrong:[], mockHistory:[]
   };
 }
 let state;
@@ -363,6 +408,7 @@ function mergeSeed(){
   const raw=loadRaw();
   state = raw ? JSON.parse(raw) : defaultState();
   mergeSeed();
+  state.mockHistory=state.mockHistory||[];
   state.wrong=(state.wrong||[]).map(w=> typeof w==="string" ? (()=>{const s=state.quiz.find(x=>x.id===w); return s?{key:s.id,sub:s.sub,topic:s.topic||"",q:s.q,opt:s.opt,ans:s.ans,sol:s.sol}:null;})() : w ).filter(Boolean);
   if(state.examDate==="2027-05-02") state.examDate="2027-04-24"; // update old default to 116 estimate
   rolloverDay();
@@ -415,6 +461,7 @@ function render(){
   if(view==="cards") return renderCards();
   if(view==="quiz") return renderQuiz();
   if(view==="wrong") return renderWrong();
+  if(view==="mock") return renderMock();
   if(view==="more") return renderMore();
 }
 
@@ -615,7 +662,9 @@ function renderQuiz(){
     document.querySelectorAll(".opt").forEach((o,i)=>{ if(i===correct)o.classList.add("correct"); if(i===pk&&pk!==correct)o.classList.add("wrong"); });
     if(pk===correct){ quizSess.correctCount++; removeWrong(q.key); toast("答對 ✓"); }
     else { addWrong(q); }
-    $("#solveBox").innerHTML=`<div class="solve"><b>${pk===correct?'正確!':'正解 '+"ABCD"[correct]}</b>　${q.sol}</div>`;
+    $("#solveBox").innerHTML = pk===correct
+      ? `<div class="solve"><b style="color:var(--green)">答對!</b>　${q.sol}</div>`
+      : `<div class="solve" style="border-left:4px solid var(--red)"><div style="margin-bottom:8px"><b style="color:var(--red)">正解 ${"ABCD"[correct]}. ${q.opt[correct]}</b></div>${teachLines(q)}</div>`;
     const hasGen=GEN.some(g=>g.topic===q.topic);
     $("#qbtns").innerHTML=(pk!==correct&&hasGen?`<button class="btn amber sm" id="drill" style="margin-top:12px">同類再一題(換數字)</button>`:``)+`<button class="btn" id="nextQ" style="margin-top:10px">下一題 →</button>`;
     if(pk!==correct&&hasGen){ $("#drill").addEventListener("click",()=>{ const g=GEN.find(x=>x.topic===q.topic); quizSess.list.splice(quizSess.i+1,0,makeGen(g)); quizSess.i++; renderQuiz(); }); }
@@ -670,7 +719,9 @@ function renderWrongSess(){
     document.querySelectorAll(".opt").forEach((o,i)=>{ if(i===correct)o.classList.add("correct"); if(i===pk&&pk!==correct)o.classList.add("wrong"); });
     if(pk===correct){ removeWrong(q.key); toast("答對,移出錯題本 ✓"); }
     else { toast("再記一次正解"); }
-    $("#solveBox").innerHTML=`<div class="solve"><b>${pk===correct?'正確!':'正解 '+"ABCD"[correct]}</b>　${q.sol}</div>`;
+    $("#solveBox").innerHTML = pk===correct
+      ? `<div class="solve"><b style="color:var(--green)">答對,移出錯題本!</b>　${q.sol}</div>`
+      : `<div class="solve" style="border-left:4px solid var(--red)"><div style="margin-bottom:8px"><b style="color:var(--red)">正解 ${"ABCD"[correct]}. ${q.opt[correct]}</b></div>${teachLines(q)}</div>`;
     $("#nextW").classList.remove("hidden"); save();
   }));
   $("#nextW").addEventListener("click",()=>{ wrongSess.i++; renderWrong(); });
@@ -723,7 +774,162 @@ function showAddQuiz(){
   $("#aq_back").addEventListener("click",()=>renderQuiz());
 }
 
-/* ===== MORE / settings ===== */
+/* ===== 模擬考模式 ===== */
+let mockSess=null;
+const MOCK_SCOPES=[
+  {label:"專業一(基本電學+電子學)",subs:["基本電學","電子學"]},
+  {label:"電工機械(專業二)",subs:["電工機械"]},
+  {label:"三科專業綜合",subs:["基本電學","電子學","電工機械"]},
+  {label:"全部(含國英數)",subs:null}
+];
+const MOCK_SIZES=[[20,30],[30,45],[40,60]];
+function renderMock(){
+  if(mockSess && mockSess.submitted) return renderMockResult();
+  if(mockSess) return renderMockExam();
+  const hist=(state.mockHistory||[]).slice(-6).reverse();
+  app.innerHTML=`
+    <div class="sec-title">模擬考</div>
+    <div class="card">
+      <div class="eyebrow">範圍</div>
+      <div class="pill-row" id="mscope" style="margin-top:8px">
+        ${MOCK_SCOPES.map((s,i)=>`<button class="pill ${i===0?'sel':''}" data-i="${i}">${s.label}</button>`).join("")}
+      </div>
+      <div class="eyebrow" style="margin-top:14px">題數・時間</div>
+      <div class="pill-row" id="msize" style="margin-top:8px">
+        ${MOCK_SIZES.map((s,i)=>`<button class="pill ${i===1?'sel':''}" data-i="${i}">${s[0]} 題・${s[1]} 分</button>`).join("")}
+      </div>
+      <p class="hint" style="margin-top:12px;text-align:left">限時作答、中途不看答案,交卷後才給成績與檢討,模擬真實考試。</p>
+      <button class="btn" id="startMock" style="margin-top:4px">開始模擬考</button>
+    </div>
+    ${hist.length?`<div class="card"><div class="eyebrow">最近成績</div>
+      ${hist.map(h=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">
+        <div><b style="font-size:16px;color:${h.score>=60?'var(--green)':'var(--amber-d)'}">${h.score}分</b> <span style="color:var(--sub);font-size:12.5px">${h.correct}/${h.total}</span></div>
+        <div style="text-align:right"><div style="font-size:12.5px">${h.scope}</div><div style="font-size:11px;color:var(--sub)">${h.date}</div></div>
+      </div>`).join("")}</div>`:``}`;
+  let sc=0, sz=1;
+  document.querySelectorAll("#mscope .pill").forEach(p=>p.addEventListener("click",()=>{document.querySelectorAll("#mscope .pill").forEach(x=>x.classList.remove("sel"));p.classList.add("sel");sc=+p.dataset.i;}));
+  document.querySelectorAll("#msize .pill").forEach(p=>p.addEventListener("click",()=>{document.querySelectorAll("#msize .pill").forEach(x=>x.classList.remove("sel"));p.classList.add("sel");sz=+p.dataset.i;}));
+  $("#startMock").addEventListener("click",()=>{
+    const scope=MOCK_SCOPES[sc], size=MOCK_SIZES[sz];
+    const qs=buildExam(scope.subs,size[0]);
+    if(!qs.length){toast("這個範圍還沒有題目");return;}
+    mockSess={questions:qs,answers:Array(qs.length).fill(-1),i:0,scope:scope.label,total:qs.length,secLimit:size[1]*60,endTs:Date.now()+size[1]*60*1000,submitted:false,timerH:setInterval(mockTick,1000)};
+    renderMock();
+  });
+}
+function mockTick(){
+  if(!mockSess||mockSess.submitted)return;
+  const rem=Math.round((mockSess.endTs-Date.now())/1000);
+  if(rem<=0){ submitMock(); return; }
+  const el=document.getElementById("mockClock");
+  if(el){ el.textContent=String(Math.floor(rem/60)).padStart(2,"0")+":"+String(rem%60).padStart(2,"0"); el.style.color=rem<=60?"var(--red)":"var(--ink)"; }
+}
+function renderMockExam(){
+  const ms=mockSess,q=ms.questions[ms.i],ansd=ms.answers.filter(a=>a>=0).length;
+  const rem=Math.max(0,Math.round((ms.endTs-Date.now())/1000));
+  const mm=String(Math.floor(rem/60)).padStart(2,"0"),ss=String(rem%60).padStart(2,"0");
+  app.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:2px 2px 10px">
+      <div style="font-size:13px;color:var(--sub)">第 ${ms.i+1}/${ms.total} 題・已答 ${ansd}</div>
+      <div id="mockClock" style="font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;color:${rem<=60?'var(--red)':'var(--ink)'}">${mm}:${ss}</div>
+    </div>
+    <div class="card">
+      <span class="tag" style="font-size:11px;font-weight:700;color:var(--blue);background:#eaf0ff;padding:3px 9px;border-radius:999px">${q.sub}${q.topic?'・'+q.topic:''}</span>
+      <div style="font-size:17.5px;font-weight:700;margin-top:10px">${q.q}</div>
+      <div id="opts">${q.opt.map((o,i)=>`<button class="opt ${ms.answers[ms.i]===i?'correct':''}" data-i="${i}"><span class="k">${"ABCD"[i]}</span>${o}</button>`).join("")}</div>
+    </div>
+    <div class="rowbtn" style="margin-top:2px">
+      <button class="btn ghost sm" id="mPrev" ${ms.i===0?'disabled style="opacity:.45"':''}>← 上一題</button>
+      <button class="btn ghost sm" id="mNext" ${ms.i===ms.total-1?'disabled style="opacity:.45"':''}>下一題 →</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="eyebrow">題號(已答=藍)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+        ${ms.questions.map((_,i)=>`<button class="mnum" data-i="${i}" style="width:30px;height:30px;border-radius:8px;font-size:12px;font-weight:700;${i===ms.i?'outline:2px solid var(--ink);outline-offset:1px;':''}${ms.answers[i]>=0?'background:var(--blue);color:#fff;border:1.5px solid var(--blue)':'background:#fff;color:var(--sub);border:1.5px solid var(--line)'}">${i+1}</button>`).join("")}
+      </div>
+    </div>
+    <button class="btn amber" id="mSubmit" style="margin-top:14px">交卷看成績</button>`;
+  document.querySelectorAll("#opts .opt").forEach(b=>b.addEventListener("click",()=>{ ms.answers[ms.i]=+b.dataset.i; renderMockExam(); }));
+  $("#mPrev").addEventListener("click",()=>{ if(ms.i>0){ms.i--;renderMockExam();} });
+  $("#mNext").addEventListener("click",()=>{ if(ms.i<ms.total-1){ms.i++;renderMockExam();} });
+  document.querySelectorAll(".mnum").forEach(b=>b.addEventListener("click",()=>{ ms.i=+b.dataset.i; renderMockExam(); }));
+  $("#mSubmit").addEventListener("click",()=>{ if(confirm("確定交卷?交卷後才會給成績。")) submitMock(); });
+}
+function submitMock(){
+  if(!mockSess||mockSess.submitted)return;
+  clearInterval(mockSess.timerH); mockSess.submitted=true;
+  const ms=mockSess; let correct=0;
+  ms.questions.forEach((q,i)=>{ if(ms.answers[i]===q.ans)correct++; });
+  ms.correct=correct; ms.score=Math.round(correct/ms.total*100);
+  state.mockHistory=state.mockHistory||[];
+  state.mockHistory.push({date:todayStr(),scope:ms.scope,score:ms.score,correct,total:ms.total});
+  save();
+  if(view==="mock") renderMock(); else setView("mock");
+}
+function renderMockResult(){
+  const ms=mockSess, bySub={};
+  ms.questions.forEach((q,i)=>{ const ok=ms.answers[i]===q.ans; (bySub[q.sub]=bySub[q.sub]||{c:0,t:0}); bySub[q.sub].t++; if(ok)bySub[q.sub].c++; });
+  const wrong=ms.questions.map((q,i)=>({q,i})).filter(x=>ms.answers[x.i]!==x.q.ans);
+  app.innerHTML=`
+    <div class="card celebrate" style="padding-top:22px">
+      <div style="font-size:52px;font-weight:800;color:${ms.score>=60?'var(--green)':'var(--amber-d)'};line-height:1">${ms.score}<span style="font-size:22px">分</span></div>
+      <p style="color:var(--sub);margin-top:8px">答對 ${ms.correct} / ${ms.total} 題・${ms.scope}</p>
+    </div>
+    <div class="card">
+      <div class="eyebrow">各科表現</div>
+      ${Object.entries(bySub).map(([s,v])=>bar(s,Math.round(v.c/v.t*100))).join("")}
+    </div>
+    <div class="rowbtn">
+      <button class="btn ghost sm" id="mAddWrong">錯題加進錯題本(${wrong.length})</button>
+      <button class="btn ghost sm" id="mAgain">再考一次</button>
+    </div>
+    ${wrong.length?`<div class="sec-title" style="margin-top:16px">錯題檢討(${wrong.length})</div>
+      ${wrong.map(x=>`<div class="card"><span class="tag" style="font-size:11px;font-weight:700;color:var(--red);background:#fdece8;padding:3px 9px;border-radius:999px">${x.q.sub}${x.q.topic?'・'+x.q.topic:''}</span>
+        <div style="font-size:15.5px;font-weight:700;margin-top:8px">${x.q.q}</div>
+        <p style="font-size:13.5px;margin-top:6px">你選:${ms.answers[x.i]>=0?"ABCD"[ms.answers[x.i]]:"未作答"}　正解:<b style="color:var(--green)">${"ABCD"[x.q.ans]}. ${x.q.opt[x.q.ans]}</b></p>
+        <div class="solve" style="margin-top:8px">${teachLines(x.q)}</div></div>`).join("")}`:`<p class="hint" style="margin-top:14px">全部答對,太強了!🎉</p>`}
+    <button class="btn" id="mDone" style="margin:14px 0 4px">完成</button>`;
+  $("#mAddWrong").addEventListener("click",()=>{ wrong.forEach(x=>addWrong(x.q)); save(); toast(wrong.length+" 題已加入錯題本"); });
+  $("#mAgain").addEventListener("click",()=>{ mockSess=null; renderMock(); });
+  $("#mDone").addEventListener("click",()=>{ mockSess=null; setView("mock"); });
+}
+
+/* ===== 批次匯入考古題 ===== */
+function showImport(){
+  app.innerHTML=`
+    <div class="sec-title">批次匯入考古題</div>
+    <div class="card">
+      <p style="font-size:13.5px;color:var(--sub)">每行一題,用「|」分隔欄位:<br><b style="color:var(--ink)">科目 | 題目 | A | B | C | D | 正解 | 解析</b><br>正解填 A/B/C/D;解析可留空;以 # 開頭的行會略過。</p>
+      <div style="background:#f4f7ff;border-radius:10px;padding:10px;font-size:11.5px;margin-top:10px;font-family:monospace;overflow-x:auto;white-space:pre">基本電學|3Ω與6Ω並聯總電阻?|2Ω|9Ω|18Ω|0.5Ω|A|上乘下加
+電子學|矽二極體順向壓降約?|0V|0.3V|0.7V|5V|C|</div>
+      <label class="fld">貼上題目</label>
+      <textarea id="impText" style="min-height:150px;font-family:monospace;font-size:13px" placeholder="科目|題目|A|B|C|D|正解|解析"></textarea>
+      <button class="btn ghost sm" id="impSample" style="margin-top:10px">填入範例看格式</button>
+      <button class="btn" id="impDo" style="margin-top:10px">匯入</button>
+      <button class="btn ghost sm" id="impBack" style="margin-top:10px">返回</button>
+      <p style="font-size:12px;color:var(--sub);margin-top:10px">科目請用:基本電學、電子學、電工機械、數學、國文、英文(這樣才會分到對的類別)。匯入的題會出現在「練習」「模考」,答錯自動進「錯題」。</p>
+    </div>`;
+  $("#impSample").addEventListener("click",()=>{ $("#impText").value=`基本電學|一電阻兩端10V、電流2A,電阻?|2Ω|5Ω|20Ω|0.2Ω|B|R=V/I=10/2=5\n電子學|NPN放大時BE接面?|逆偏|順偏|開路|短路|B|放大時BE順偏\n電工機械|變壓器電壓比等於?|匝數比|電流比|功率比|電阻比|A|V1/V2=N1/N2`; });
+  $("#impDo").addEventListener("click",()=>{
+    const lines=($("#impText").value||"").split(/\r?\n/);
+    let added=0; const errs=[]; const map={A:0,B:1,C:2,D:3,a:0,b:1,c:2,d:3};
+    lines.forEach((ln,idx)=>{
+      const raw=ln.trim(); if(!raw||raw.startsWith("#"))return;
+      const parts=raw.split(/[|｜]/).map(s=>s.trim());
+      if(parts.length<7){ errs.push(idx+1); return; }
+      const sub=parts[0],q=parts[1],a=parts[2],b=parts[3],c=parts[4],d=parts[5],ans=map[parts[6]],sol=parts.slice(7).join("|")||"(匯入考古題)";
+      if(!sub||!q||!a||!b||!c||!d||ans===undefined){ errs.push(idx+1); return; }
+      state.quiz.push({id:"imp"+Date.now()+"_"+idx,sub,topic:"考古題",q,opt:[a,b,c,d],ans,sol,seen:0,ok:0});
+      added++;
+    });
+    save();
+    toast(added+" 題匯入"+(errs.length?`,${errs.length} 行有誤(第 ${errs.slice(0,5).join("、")}${errs.length>5?"…":""} 行)`:" ✓"));
+    if(!errs.length) $("#impText").value="";
+  });
+  $("#impBack").addEventListener("click",()=>renderMore());
+}
+
+
 function renderMore(){
   const cp=currentPlan();
   app.innerHTML=`
@@ -757,6 +963,11 @@ function renderMore(){
       </div>
     </div>
     <div class="card">
+      <div class="eyebrow">批次匯入考古題</div>
+      <p style="font-size:13.5px;color:var(--sub);margin:8px 0 12px">把老師給的考古題一次貼進來,自動加到「練習」與「模考」。</p>
+      <button class="btn ghost sm" id="openImport">開啟匯入</button>
+    </div>
+    <div class="card">
       <div class="eyebrow">備份・轉移</div>
       <p style="font-size:13.5px;color:var(--sub);margin:8px 0 12px">把進度存成一段文字備份;換手機或清資料前先複製起來。</p>
       <button class="btn ghost sm" id="exp">匯出備份(複製)</button>
@@ -765,6 +976,7 @@ function renderMore(){
     </div>
     <p style="text-align:center;font-size:12px;color:var(--sub);padding:6px 0 4px">內建題目為示範,可自行新增真正的考古題。<br>放在瀏覽器或自架網頁使用,進度會自動保存。</p>`;
   $("#saveSet").addEventListener("click",()=>{ state.examDate=$("#exam").value||state.examDate; state.target=+$("#tgt").value; save(); toast("已儲存 ✓"); render(); });
+  $("#openImport").addEventListener("click",()=>showImport());
   $("#exp").addEventListener("click",()=>{ const s=JSON.stringify(state); navigator.clipboard?.writeText(s).then(()=>toast("已複製備份"),()=>prompt("複製這段文字:",s)); });
   $("#imp").addEventListener("click",()=>{ const s=prompt("貼上備份文字:"); if(!s)return; try{ state=JSON.parse(s); save(); toast("還原成功 ✓"); rolloverDay(); render(); }catch(e){ toast("格式不對,還原失敗"); } });
   $("#rst").addEventListener("click",()=>{ if(confirm("確定清除全部進度、回到最初?")){ state=defaultState(); save(); toast("已重置"); setView("today"); } });
