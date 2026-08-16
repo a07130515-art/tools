@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>蚵仔記帳</title>
+<title>蚵仔記帳②</title>
 <style>
   :root{
     --paper:#f6f2e8;
@@ -174,7 +174,7 @@
 <div class="app">
   <header class="board">
     <div class="board-top">
-      <div class="board-title">🦪 蚵仔記帳</div>
+      <div class="board-title">🦪 蚵仔記帳 ②</div>
       <button class="gear" onclick="go('menu')" aria-label="設定">⚙️</button>
     </div>
     <div class="board-grid">
@@ -412,7 +412,7 @@
 
 <script>
 /* ================= 資料層 ================= */
-const KEY='oyster_db_v1';
+const KEY='oyster_db_v2';
 const DEFAULT={ customers:[], price:0, unit:'斤', inventory:{date:'', total:0}, tx:[], seeded:false };
 let DB = load();
 seedDemoIfFresh();
