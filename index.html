@@ -1,54 +1,78 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="工具台" />
-<meta name="theme-color" content="#09090b" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>工具台</title>
 <style>
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{margin:0;background:#09090b;color:#e4e4e7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;padding:24px 16px 40px;min-height:100vh;}
-  .wrap{max-width:520px;margin:0 auto;}
-  h1{font-family:ui-monospace,monospace;color:#fbbf24;font-size:22px;letter-spacing:-.02em;margin:0 0 2px;}
-  .sub{color:#52525b;font-size:12px;margin-bottom:24px;}
-  a.card{display:block;text-decoration:none;color:inherit;border:1px solid #27272a;background:rgba(24,24,27,.5);border-radius:12px;padding:18px;margin-bottom:12px;transition:border-color .15s;}
-  a.card:active{border-color:rgba(251,191,36,.6);}
-  .card .row{display:flex;align-items:center;justify-content:space-between;}
-  .card .name{font-family:ui-monospace,monospace;font-size:17px;font-weight:700;color:#e4e4e7;}
-  .card .arrow{color:#fbbf24;font-size:18px;}
-  .card .desc{color:#a1a1aa;font-size:13px;line-height:1.6;margin-top:8px;}
-  .card .tags{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;}
-  .tag{font-size:11px;color:#71717a;border:1px solid #27272a;border-radius:99px;padding:2px 9px;font-family:ui-monospace,monospace;}
-  .foot{color:#3f3f46;font-size:11px;text-align:center;margin-top:20px;line-height:1.7;}
+:root{
+  --bg:#0b0b0d; --card:#141417; --line:#2a2a30;
+  --ink:#f2f2f4; --sub:#9a9aa2; --tagline:#3a3a44; --tagtxt:#c2c2cc;
+  --gold:#f2a516; --blue:#4d8cff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.65;
+  -webkit-font-smoothing:antialiased; padding:0 0 40px;
+}
+.wrap{max-width:520px;margin:0 auto;padding:30px 18px 0}
+h1{margin:0;font-size:40px;font-weight:800;color:var(--gold);letter-spacing:2px}
+.subtitle{color:var(--sub);font-size:15px;margin:4px 0 26px}
+a.card{
+  display:block;text-decoration:none;color:inherit;
+  background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:22px 20px;margin-bottom:18px;transition:.15s;
+}
+a.card:active{transform:scale(.99);border-color:#3a3a46}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-title{font-size:23px;font-weight:800;color:var(--ink)}
+.arrow{font-size:24px;color:var(--gold);flex:0 0 auto}
+.desc{color:var(--sub);font-size:15px;margin:12px 0 16px}
+.tags{display:flex;flex-wrap:wrap;gap:9px}
+.tag{border:1px solid var(--tagline);color:var(--tagtxt);border-radius:999px;padding:5px 14px;font-size:13.5px}
+
+/* 充電站 highlighted card */
+a.card.study{border-color:#284a86;background:linear-gradient(180deg,#12203a,#121218)}
+a.card.study .arrow{color:var(--blue)}
+a.card.study .card-title{color:#eaf1ff}
+a.card.study .badge{display:inline-block;font-size:12px;font-weight:700;color:#0b0b0d;background:var(--blue);border-radius:6px;padding:2px 8px;margin-bottom:10px}
+a.card.study .tag{border-color:#2f4d80;color:#a9c4f5}
+.foot{color:#63636c;font-size:12.5px;text-align:center;padding:8px 10px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>工具台</h1>
-  <div class="sub">本地計算 · 資料不上傳</div>
+  <div class="subtitle">本地計算 · 資料不上傳</div>
+
+  <a class="card study" href="統測電機類_充電站.html">
+    <span class="badge">升學・每日練習</span>
+    <div class="card-head"><div class="card-title">統測・充電站</div><div class="arrow">→</div></div>
+    <div class="desc">高職統測電機類每日練習台——記憶卡間隔重複、計算題自動出題、答錯教學級詳解、錯題本、限時模擬考與成績追蹤、月度讀書計畫。</div>
+    <div class="tags"><span class="tag">每日三關</span><span class="tag">自動出題</span><span class="tag">錯題詳解</span><span class="tag">模擬考</span></div>
+  </a>
 
   <a class="card" href="risk-calc.html">
-    <div class="row"><span class="name">部位風險計算台</span><span class="arrow">→</span></div>
-    <div class="desc">槓桿／反向 ETF 的波動耗損、單日歸零點、來回震盪 vs 單邊損益差；保證金部位爆倉價；Kelly 部位建議。</div>
+    <div class="card-head"><div class="card-title">部位風險計算台</div><div class="arrow">→</div></div>
+    <div class="desc">槓桿／反向 ETF 的波動耗損、單日歸零點、來回震盪 vs 單邊損益差;保證金部位爆倉價;Kelly 部位建議。</div>
     <div class="tags"><span class="tag">波動耗損</span><span class="tag">爆倉價</span><span class="tag">Kelly</span></div>
   </a>
 
   <a class="card" href="options-calc.html">
-    <div class="row"><span class="name">選擇權計算台</span><span class="arrow">→</span></div>
-    <div class="desc">股票／ETF 與期貨選擇權定價（BS／Black-76）、Delta Gamma Theta Vega Rho、市價反解隱含波動、損益兩平、到期價內／獲利機率、預期波動範圍、依風險預算算口數、到期＋現值損益圖。</div>
+    <div class="card-head"><div class="card-title">選擇權計算台</div><div class="arrow">→</div></div>
+    <div class="desc">股票／ETF 與期貨選擇權定價(BS／Black-76)、Delta Gamma Theta Vega Rho、市價反解隱含波動、損益兩平、到期價內／獲利機率、預期波動範圍、依風險預算算口數、到期＋現值損益圖。</div>
     <div class="tags"><span class="tag">希臘字母</span><span class="tag">隱含波動</span><span class="tag">Theta</span><span class="tag">損益圖</span></div>
   </a>
 
   <a class="card" href="quick-calc.html">
-    <div class="row"><span class="name">快速計算台</span><span class="arrow">→</span></div>
-    <div class="desc">運算式計算（吃單位與百分比）、即時匯率換算、複利／單利、折扣加成成長率佔比。</div>
+    <div class="card-head"><div class="card-title">快速計算台</div><div class="arrow">→</div></div>
+    <div class="desc">運算式計算(吃單位與百分比)、即時匯率換算、複利／單利、折扣加成成長率佔比。</div>
     <div class="tags"><span class="tag">運算式</span><span class="tag">匯率</span><span class="tag">複利</span><span class="tag">%</span></div>
   </a>
 
-  <div class="foot">加入主畫面後點圖示即全螢幕開啟<br>部位風險計算台離線可用</div>
+  <div class="foot">a07130515-art.github.io/tools</div>
 </div>
 </body>
 </html>
