@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>充電站・統測電機類每日練習</title>
+<style>
+:root{
+  --bg:#eef1f8; --card:#ffffff; --ink:#182338; --sub:#5c667d;
+  --line:#e3e7f1; --blue:#2f6be6; --blue-d:#1f4fbf;
+  --amber:#f6a62b; --amber-d:#d98407;
+  --green:#12a05f; --red:#e5533c;
+  --shadow:0 6px 22px rgba(24,35,56,.08);
+  --r:18px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg); color:var(--ink);
+  line-height:1.6; -webkit-font-smoothing:antialiased;
+  padding-bottom:84px;
+}
+.wrap{max-width:480px;margin:0 auto;padding:16px 16px 0}
+h1,h2,h3,p{margin:0}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.hidden{display:none!important}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 12px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:.5px}
+.spark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--blue),#5b8bff);display:grid;place-items:center;color:#fff;font-size:15px}
+.count{background:var(--card);border-radius:14px;padding:6px 12px;box-shadow:var(--shadow);text-align:center;line-height:1.15}
+.count b{font-size:20px;color:var(--blue);font-variant-numeric:tabular-nums}
+.count span{display:block;font-size:11px;color:var(--sub)}
+
+/* cards */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;margin-bottom:14px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--sub);text-transform:uppercase}
+
+/* battery signature */
+.batt-wrap{display:flex;align-items:center;gap:16px;margin:6px 0 4px}
+.batt{position:relative;width:96px;height:150px;border:5px solid var(--ink);border-radius:14px;overflow:hidden;flex:0 0 auto;background:#f3f5fb}
+.batt::before{content:"";position:absolute;top:-13px;left:50%;transform:translateX(-50%);width:34px;height:11px;background:var(--ink);border-radius:5px 5px 0 0}
+.seg{position:absolute;left:0;right:0;transition:background .5s, box-shadow .5s;background:#e7ebf5;border-top:3px solid #f3f5fb}
+.seg.on{background:linear-gradient(180deg,#ffcf6e,var(--amber));box-shadow:inset 0 0 18px rgba(217,132,7,.35)}
+.seg.s3{top:0;height:33.4%}.seg.s2{top:33.4%;height:33.3%}.seg.s1{top:66.7%;height:33.3%}
+.batt-txt h2{font-size:22px}
+.batt-txt .pct{font-size:40px;font-weight:800;color:var(--amber-d);font-variant-numeric:tabular-nums;line-height:1}
+.batt-txt p{font-size:13px;color:var(--sub);margin-top:4px}
+
+/* gates */
+.gate{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1.5px solid var(--line);border-radius:14px;margin-top:10px;width:100%;text-align:left;transition:.15s;background:var(--card)}
+.gate:active{transform:scale(.99)}
+.gate .num{width:30px;height:30px;border-radius:9px;background:#eaf0ff;color:var(--blue);font-weight:800;display:grid;place-items:center;flex:0 0 auto}
+.gate .g-body{flex:1}
+.gate .g-body b{font-size:15.5px}
+.gate .g-body span{display:block;font-size:12.5px;color:var(--sub)}
+.gate .tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;display:grid;place-items:center;color:#fff;font-size:14px}
+.gate.done{border-color:#bfe6d1;background:#f2fbf6}
+.gate.done .tick{background:var(--green);border-color:var(--green)}
+.gate.done .num{background:#e3f6ec;color:var(--green)}
+
+/* mini stat row */
+.mini{display:flex;gap:10px;margin-bottom:14px}
+.mini .m{flex:1;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px 6px;text-align:center}
+.mini .m b{font-size:22px;font-variant-numeric:tabular-nums}
+.mini .m span{display:block;font-size:11.5px;color:var(--sub);margin-top:2px}
+
+/* timer */
+.timer{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.timer .disp{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+.chip{border:1.5px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--sub)}
+.chip.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* buttons */
+.btn{display:block;width:100%;background:var(--blue);color:#fff;font-weight:800;font-size:16px;padding:15px;border-radius:14px;text-align:center;box-shadow:0 6px 16px rgba(47,107,230,.28)}
+.btn:active{background:var(--blue-d)}
+.btn.amber{background:var(--amber);box-shadow:0 6px 16px rgba(246,166,43,.3)}
+.btn.amber:active{background:var(--amber-d)}
+.btn.ghost{background:#eef2fb;color:var(--blue);box-shadow:none}
+.btn.sm{font-size:14px;padding:11px}
+
+/* flashcard */
+.flip{perspective:1200px;margin-bottom:14px}
+.flip-inner{position:relative;min-height:230px;transition:transform .5s;transform-style:preserve-3d}
+.flip.on .flip-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.face .tag{position:absolute;top:14px;left:16px;font-size:11px;font-weight:700;color:var(--blue);background:#eaf0ff;padding:3px 9px;border-radius:999px}
+.face .q{font-size:21px;font-weight:700}
+.face.back{transform:rotateY(180deg);background:#fbfcff}
+.face.back .a{font-size:22px;font-weight:800;color:var(--ink)}
+.face.back .mn{margin-top:12px;font-size:14px;color:var(--amber-d);background:#fff6e6;padding:9px 12px;border-radius:12px;display:inline-block}
+.hint{text-align:center;font-size:12.5px;color:var(--sub);margin:-4px 0 12px}
+.rowbtn{display:flex;gap:10px}
+.rowbtn .btn{flex:1}
+.btn.no{background:#fdece8;color:var(--red);box-shadow:none}
+.btn.yes{background:#e5f7ee;color:var(--green);box-shadow:none}
+
+/* quiz */
+.opt{display:block;width:100%;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:13px 15px;margin-top:10px;font-size:15.5px;transition:.12s}
+.opt:active{transform:scale(.995)}
+.opt .k{font-weight:800;color:var(--blue);margin-right:8px}
+.opt.correct{border-color:var(--green);background:#f0fbf5}
+.opt.wrong{border-color:var(--red);background:#fdf0ee}
+.opt.correct .k{color:var(--green)}.opt.wrong .k{color:var(--red)}
+.solve{background:#f4f7ff;border-radius:13px;padding:13px 15px;margin-top:12px;font-size:14px}
+.solve b{color:var(--blue)}
+
+/* progress bars */
+.prog{margin-top:12px}
+.prog .lab{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:5px}
+.prog .lab span:last-child{color:var(--sub);font-variant-numeric:tabular-nums}
+.bar{height:9px;background:#e9edf7;border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#6a9bff);border-radius:999px;transition:width .4s}
+
+/* selects / inputs */
+label.fld{display:block;font-size:13px;font-weight:600;color:var(--sub);margin:12px 0 5px}
+select,input,textarea{width:100%;font-family:inherit;font-size:15px;padding:11px;border:1.5px solid var(--line);border-radius:12px;background:#fbfcff;color:var(--ink)}
+textarea{min-height:64px;resize:vertical}
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.pill{border:1.5px solid var(--line);border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:600;color:var(--sub)}
+.pill.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:20}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:11px;color:var(--sub);font-weight:600}
+.nav button .ic{font-size:20px;line-height:1}
+.nav button.on{color:var(--blue)}
+.empty{text-align:center;color:var(--sub);padding:30px 10px;font-size:14px}
+.big-emoji{font-size:40px;display:block;margin-bottom:8px}
+.celebrate{text-align:center;padding:10px 0}
+.celebrate .big-emoji{font-size:52px}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:var(--shadow);z-index:40;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+.sec-title{font-size:17px;font-weight:800;margin:4px 2px 10px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="spark">⚡</span>充電站</div>
+    <div class="count"><b id="daysLeft">–</b><span>天後統測</span></div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<div class="nav">
+  <button data-v="today" class="on"><span class="ic">🔋</span>今天</button>
+  <button data-v="cards"><span class="ic">🗂️</span>記憶卡</button>
+  <button data-v="quiz"><span class="ic">✏️</span>練習</button>
+  <button data-v="wrong"><span class="ic">🔁</span>錯題</button>
+  <button data-v="more"><span class="ic">⚙️</span>更多</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ---------- storage (falls back to memory if blocked, e.g. preview) ---------- */
+const KEY="chargeStation_v1";
+let mem=null;
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){ mem=JSON.stringify(state);} }
+function loadRaw(){ try{ const v=localStorage.getItem(KEY); return v||mem; }catch(e){ return mem; } }
+
+/* ---------- seed content (original, formula/fact based) ---------- */
+const SUBJECTS=["基本電學","電子學","電工機械","數學","國文","英文"];
+const SEED_CARDS=[
+ ["基本電學","歐姆定律的公式?","V = I × R","V像老大,電流I乘電阻R都聽它的"],
+ ["基本電學","電功率 P 的三個公式?","P = VI = I²R = V²/R","P有三張臉:VI、I方R、V方除R"],
+ ["基本電學","電阻色碼 黑棕紅橙黃綠藍紫灰白 =?","0 1 2 3 4 5 6 7 8 9","黑到白剛好排 0 到 9"],
+ ["基本電學","串聯電阻總值怎麼算?","直接相加 R=R1+R2+…","串聯手牽手,阻值一直加"],
+ ["基本電學","兩電阻並聯總值?","R = (R1×R2)/(R1+R2)","並聯用「積分之和」:上乘下加"],
+ ["基本電學","串聯電路的電流特性?","各處電流都相同","串聯一條路,電流不分家"],
+ ["基本電學","並聯電路的電壓特性?","各支路電壓都相同","並聯同兩端,電壓都一樣"],
+ ["基本電學","電荷 Q、電流 I、時間 t 關係?","Q = I × t",""],
+ ["基本電學","1 度電等於多少?","1 kWh(千瓦·小時)","一千瓦用一小時 = 一度"],
+ ["基本電學","電容「串聯」總值怎麼算?","用「積分之和」(上乘下加)","電容跟電阻相反,串聯才用乘除"],
+ ["基本電學","克希荷夫電流定律 KCL?","流入節點電流和 = 流出和","節點不存電,進多少出多少"],
+ ["基本電學","電壓、電流、電阻、功率的單位?","伏特V、安培A、歐姆Ω、瓦特W",""],
+ ["基本電學","k、M、m、µ 各是幾次方?","10³、10⁶、10⁻³、10⁻⁶","大寫變大、小寫變小"],
+ ["電子學","矽二極體順向導通壓降約多少?","約 0.7V(鍺約 0.3V)","順向開門:矽七、鍺三"],
+ ["電子學","二極體逆向偏壓會怎樣?","不導通,像斷路","逆向關門,電流過不去"],
+ ["電子學","NPN 電晶體要放大,BE 接面要?","順向偏壓(基極拉高)","NPN:B 比 E 高才開門"],
+ ["電子學","電晶體的三個工作區?","截止、主動、飽和","關 → 放大 → 全開"],
+ ["電子學","N 型半導體多數載子是?","電子(P 型是電洞)","N=電子多,P=電洞多"],
+ ["電子學","理想運算放大器的輸入阻抗?","無限大(電流不流入)","理想 OP:輸入不吃電流"],
+ ["電子學","AND 閘與 OR 閘的口訣?","AND全1才1;OR有1就1","AND要到齊,OR來一個就算"],
+ ["電子學","NOT 閘做什麼?","反相:0↔1",""],
+ ["電工機械","變壓器電壓比 = ?","V1/V2 = N1/N2(匝數比)","電壓跟著圈數走"],
+ ["電工機械","三相感應電動機同步轉速 Ns?","Ns = 120f / P","120乘頻率、除以極數"],
+ ["電工機械","直流電動機的能量轉換?","電能 → 機械能(發電機相反)",""],
+ ["數學","log(a×b) = ?","log a + log b","相乘變相加"],
+ ["數學","等差數列第 n 項?","aₙ = a₁ + (n−1)d",""],
+ ["數學","直角三角形商高定理?","a² + b² = c²",""],
+ ["國文","「炙手可熱」比喻?","權勢極大、氣焰高","手一靠近就燙 = 勢力大"],
+ ["國文","「一暴十寒」意思?","做事沒恆心,忽勤忽懶",""],
+ ["英文","because 和 because of 差別?","because+句子;because of+名詞","of 後面接名詞"],
+ ["英文","現在完成式結構?","have/has + 過去分詞(p.p.)",""],
+ ["基本電學","電導 G 是什麼?單位?","G = 1/R(電阻倒數),單位西門子 S","電導 = 電阻倒數"],
+ ["基本電學","導線電阻 R 與長度、截面積關係?","R = ρL/A:越長越大、越粗越小","長瘦電阻大、短胖電阻小"],
+ ["基本電學","分壓定則(串聯)?","某電阻電壓 = 總電壓 × 該電阻/總電阻","串聯分壓:誰大分得多"],
+ ["基本電學","分流定則(兩電阻並聯)?","某支路電流 = 總電流 × 對面電阻/兩阻和","並聯分流公式取「對面」那顆"],
+ ["基本電學","電池串聯 vs 並聯?","串聯:電壓相加;並聯:電壓不變、可供更大電流","串聯疊電壓、並聯撐電流"],
+ ["基本電學","交流有效值 RMS 與峰值關係?","RMS = 峰值 ÷ √2 ≈ 0.707 × 峰值","有效值約峰值的 0.707"],
+ ["基本電學","頻率 f 與週期 T 關係?","f = 1 / T","頻率與週期互為倒數"],
+ ["基本電學","電阻色碼第 3、第 4 環代表?","第3環=乘數(10的次方);第4環=誤差(金±5%、銀±10%)","三乘數、四誤差"],
+ ["基本電學","電功 W 怎麼算?","W = P × t(功率 × 時間)",""],
+ ["基本電學","惠斯登電橋平衡條件?","對角相乘相等 R1×R4 = R2×R3","對角乘積相等就平衡"],
+ ["基本電學","電功率 P 與電壓電流?","P = V × I","功率 = 電壓乘電流"],
+ ["基本電學","1kΩ、1MΩ 各是多少 Ω?","1kΩ=1000Ω;1MΩ=1,000,000Ω","k=千、M=百萬"],
+ ["電工機械","變壓器電壓、匝數、電流的關係?","V1/V2 = N1/N2 = I2/I1","電壓跟匝數同向、電流相反"],
+ ["電工機械","理想變壓器輸入 vs 輸出功率?","相等 P1 = P2(不計損失)","進多少出多少"],
+ ["電工機械","三相感應電動機同步轉速 Ns?","Ns = 120f / P(f 頻率、P 極數)","120 乘頻率、除極數"],
+ ["電工機械","感應電動機轉差率 S?","S =(Ns − Nr)/Ns","轉速差 ÷ 同步速"],
+ ["電工機械","發電機 vs 電動機的能量轉換?","發電機:機械→電;電動機:電→機械","發電生電、電動出力"],
+ ["電工機械","佛萊明右手、左手定則各用在?","右手→發電機;左手→電動機受力","右手發電、左手出力"],
+ ["電工機械","變壓器「鐵損」包含?","渦流損 + 磁滯損","鐵損 = 渦流 + 磁滯"],
+ ["電工機械","變壓器「銅損」來自?","繞組電阻的 I²R 損失","銅損 = 繞組發熱"],
+ ["電工機械","直流機換向器(整流子)作用?","維持/切換電流方向(整流)","換向器管方向"],
+ ["電工機械","三相電源 R、S、T 相位差?","彼此相差 120 度",""],
+ ["電工機械","電動機啟動瞬間電流?","很大,遠大於額定電流","一啟動電流暴衝"],
+ ["電工機械","匝數多的那一側電壓?","較高(電壓與匝數成正比)","圈多電壓高"]
+];
+const SEED_QUIZ=[
+ ["基本電學","電阻兩端 10V、電流 2A,電阻多少?",["2Ω","5Ω","20Ω","0.2Ω"],1,"歐姆定律 R=V/I=10/2=5Ω"],
+ ["基本電學","3Ω 與 6Ω 並聯,總電阻?",["9Ω","2Ω","18Ω","0.5Ω"],1,"積分之和 =(3×6)/(3+6)=18/9=2Ω"],
+ ["基本電學","3Ω 與 6Ω 串聯,總電阻?",["9Ω","2Ω","18Ω","4.5Ω"],0,"串聯直接相加 3+6=9Ω"],
+ ["基本電學","100W 燈泡用 5 小時,耗幾度電?",["0.5 度","5 度","500 度","0.05 度"],0,"(100×5)/1000 = 0.5 度"],
+ ["基本電學","色碼「棕黑紅」的電阻值?",["10Ω","100Ω","1kΩ","1MΩ"],2,"棕1、黑0、紅=×100 → 10×100=1000Ω=1kΩ"],
+ ["基本電學","電流 0.5A 流過 3 秒,電荷?",["1.5 C","6 C","0.16 C","3.5 C"],0,"Q=I×t=0.5×3=1.5 庫侖"],
+ ["電子學","矽二極體順向導通壓降約?",["0V","0.3V","0.7V","5V"],2,"矽二極體約 0.7V(鍺約 0.3V)"],
+ ["電子學","二極體逆向偏壓時可視為?",["通路","斷路","0Ω","電池"],1,"逆向不導通,像斷路(開路)"],
+ ["電子學","NPN 放大時,BE 接面應為?",["逆向偏壓","順向偏壓","開路","短路"],1,"放大:BE 順偏、CB 逆偏"],
+ ["電子學","AND 閘輸入 1 和 0,輸出?",["0","1","不定","高阻"],0,"AND 全部是1才輸出1"],
+ ["電子學","N 型半導體多數載子?",["電洞","電子","質子","中子"],1,"N 型多數載子是電子"],
+ ["電子學","理想運算放大器輸入阻抗?",["0","無限大","1kΩ","負值"],1,"理想 OP 輸入阻抗無限大"],
+ ["電工機械","變壓器一次200匝二次50匝,一次100V,二次?",["400V","25V","50V","100V"],1,"V2=V1×N2/N1=100×50/200=25V"],
+ ["電工機械","60Hz、4 極三相感應機同步轉速?",["1800 rpm","3600 rpm","900 rpm","1200 rpm"],0,"Ns=120×60/4=1800 rpm"],
+ ["電工機械","直流電動機能量轉換?",["電→機械","機械→電","電→熱","熱→電"],0,"電動機:電能轉機械能"],
+ ["數學","log2 + log5 =?(以10為底)",["1","7","10","0"],0,"log(2×5)=log10=1"],
+ ["數學","兩股 3、4 的直角三角形斜邊?",["5","7","6","25"],0,"3²+4²=25,√25=5"],
+ ["數學","等差 2,5,8,… 第 10 項?",["29","27","32","30"],0,"2+(10−1)×3=29"],
+ ["國文","「炙手可熱」比喻?",["天氣熱","權勢極大","食物燙","發燒"],1,"比喻氣焰、權勢極大"],
+ ["英文","He was late ___ the rain.",["because","because of","so","although"],1,"of 後接名詞 the rain"],
+ ["基本電學","12V 加在 2Ω 與 4Ω 串聯,4Ω 兩端電壓?",["4V","8V","6V","12V"],1,"分壓:12×4/(2+4)=8V"],
+ ["基本電學","總電流 9A 進入 3Ω 與 6Ω 並聯,流過 3Ω 的電流?",["3A","6A","9A","4.5A"],1,"分流取對面:9×6/(3+6)=6A"],
+ ["基本電學","100Ω 通過 0.2A,消耗功率?",["2W","4W","20W","0.4W"],1,"P=I²R=0.04×100=4W"],
+ ["基本電學","週期 20ms 的交流,頻率多少?",["50Hz","20Hz","100Hz","60Hz"],0,"f=1/T=1/0.02=50Hz"],
+ ["基本電學","交流峰值 100V,有效值約?",["100V","70.7V","50V","141V"],1,"RMS=100×0.707≈70.7V"],
+ ["基本電學","5Ω 與 5Ω 並聯,總電阻?",["10Ω","2.5Ω","5Ω","1Ω"],1,"相同兩電阻並聯 = 一半 = 2.5Ω"],
+ ["基本電學","三顆 1.5V 電池串聯,總電壓?",["1.5V","4.5V","3V","6V"],1,"串聯電壓相加:1.5×3=4.5V"],
+ ["基本電學","1kΩ 電阻兩端 5V,電流多少?",["5A","5mA","0.5A","50mA"],1,"I=V/R=5/1000=0.005A=5mA"],
+ ["基本電學","電導 G 是電阻的?",["平方","倒數","兩倍","相同"],1,"G=1/R,是電阻的倒數"],
+ ["基本電學","110V、5A 的電器,功率?",["550W","22W","115W","500W"],0,"P=VI=110×5=550W"],
+ ["基本電學","色碼「紅紅棕」的電阻值?",["22Ω","220Ω","2.2kΩ","2Ω"],1,"紅2、紅2、棕(×10)=22×10=220Ω"],
+ ["基本電學","導線截面積變大,電阻會?",["變大","變小","不變","變 0"],1,"R=ρL/A,截面積越大電阻越小"],
+ ["電工機械","變壓器一次 400 匝、二次 100 匝,一次 220V,二次電壓?",["55V","880V","110V","220V"],0,"V2=V1×N2/N1=220×100/400=55V"],
+ ["電工機械","50Hz、6 極三相感應機同步轉速?",["1000 rpm","1500 rpm","500 rpm","3000 rpm"],0,"Ns=120×50/6=1000 rpm"],
+ ["電工機械","同步 1800、實際 1710,轉差率?",["5%","10%","95%","0.5%"],0,"S=(1800−1710)/1800=5%"],
+ ["電工機械","發電機把什麼轉成什麼?",["電→機械","機械→電","熱→電","電→熱"],1,"發電機:機械能→電能"],
+ ["電工機械","理想變壓器一次功率 100W,二次?",["100W","50W","200W","0W"],0,"理想無損 P1=P2=100W"],
+ ["電工機械","變壓器「鐵損」包含?",["渦流損與磁滯損","繞組電阻損","摩擦損","電刷損"],0,"鐵損 = 渦流損 + 磁滯損"],
+ ["電工機械","判斷電動機受力方向用?",["右手定則","左手定則","歐姆定律","冷次定律"],1,"電動機受力:佛萊明左手定則"],
+ ["電工機械","三相電源各相相位差?",["90 度","120 度","180 度","60 度"],1,"三相彼此相差 120 度"],
+ ["電工機械","繞組電阻造成的損失叫?",["鐵損","銅損","風損","雜散損"],1,"繞組 I²R 損失 = 銅損"],
+ ["電工機械","匝數多的一側,電壓?",["較高","較低","相同","為 0"],0,"電壓與匝數成正比,圈多電壓高"]
+];
+const PLAN=[
+ ["2026-09","打底:基本電學+國英暖機","基本電學公式、色碼背熟;國文字音字形、英文高頻單字開始滾動"],
+ ["2026-10","基本電學題型化+電工機械公式","練分壓分流、串並聯、功率;電工機械變壓器/轉速/能量公式背起來"],
+ ["2026-11","電子學純記憶區+第一次模擬","電子學只抓元件特性、二極體/電晶體/邏輯閘;月底考一次專一限時"],
+ ["2026-12","共同科目加碼+錯題回收","國文閱讀、英文文法克漏字;清一輪錯題本;數學只練高頻基礎題型"],
+ ["2027-01","第一輪總複習(專業科目)","專一、專二各過一遍考古題;用錯題本收弱點;定案要選考哪幾科"],
+ ["2027-02","弱點強攻+第二次模擬","集中打錯題本最常錯的主題;月底整份專業科目限時模擬"],
+ ["2027-03","全科限時模擬·衝刺","每週一份選考科目限時卷,練速度與配分取捨;錯題二輪清空"],
+ ["2027-04","考前收尾·穩心態","只複習記憶卡與錯題本;調作息、看考場規則、備文具、睡飽"]
+];
+function currentPlan(){
+  const ym=todayStr().slice(0,7);
+  let idx=PLAN.findIndex(p=>p[0]===ym);
+  let soon=false;
+  if(idx<0){ if(ym<PLAN[0][0]){idx=0;soon=true;} else idx=PLAN.length-1; }
+  return {p:PLAN[idx],idx,soon};
+}
+
+/* ===== 自動出題引擎(計算題無限不重複) ===== */
+let genSeq=0;
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function shuffleArr(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function fmtNum(n){n=Math.round(n*100)/100;return n.toString();}
+function opts4(correct,wrongs,unit){
+  unit=unit||""; correct=Math.round(correct*100)/100;
+  const cl=(a,b)=>Math.abs(a-b)<0.005;
+  let vals=[correct];
+  for(const w of (wrongs||[])){ if(vals.length>=4)break; const wr=Math.round(w*100)/100; if(wr>0 && !vals.some(v=>cl(v,wr))) vals.push(wr); }
+  let g=0; while(vals.length<4 && g++<60){ const f=pick([0.5,2,1.5,0.25,3,0.75,4,1.25]); const w=Math.round(correct*f*100)/100; if(w>0 && !vals.some(v=>cl(v,w))) vals.push(w); }
+  vals=shuffleArr(vals);
+  return {opt:vals.map(v=>fmtNum(v)+unit), ans:vals.indexOf(correct)};
+}
+const CB=["黑","棕","紅","橙","黃","綠","藍","紫","灰","白"];
+const GEN=[
+ {sub:"基本電學",topic:"歐姆定律",make(){const I=pick([2,3,4,5,6]),R=pick([2,3,4,5,6,8,10]),V=I*R;return {q:`電阻兩端 ${V}V、電流 ${I}A,電阻多少?`,sol:`R=V/I=${V}/${I}=${R}Ω`,...opts4(R,[V*I,V+I,R*2,I],"Ω")};}},
+ {sub:"基本電學",topic:"歐姆定律",make(){const I=pick([2,3,4,5]),R=pick([3,5,6,8,10,12]),V=I*R;return {q:`電阻 ${R}Ω、電流 ${I}A,兩端電壓?`,sol:`V=IR=${I}×${R}=${V}V`,...opts4(V,[R,R+I,V*2,R-I],"V")};}},
+ {sub:"基本電學",topic:"歐姆定律",make(){const R=pick([2,5,10,20,25,50]),V=pick([10,20,50,100]),I=Math.round(V/R*100)/100;return {q:`電壓 ${V}V 加在 ${R}Ω,電流多少?`,sol:`I=V/R=${V}/${R}=${I}A`,...opts4(I,[V*R,I*2,V+R],"A")};}},
+ {sub:"基本電學",topic:"串聯電阻",make(){const a=pick([2,3,4,5,6,10]),b=pick([2,3,4,5,6,8]),c=Math.random()<.4?pick([2,3,4,5]):0,s=a+b+c;return {q:`${a}Ω、${b}Ω${c?`、${c}Ω`:""} 串聯,總電阻?`,sol:`串聯相加 = ${a}+${b}${c?`+${c}`:""} = ${s}Ω`,...opts4(s,[Math.round(a*b/(a+b)*100)/100,Math.abs(a-b),s*2],"Ω")};}},
+ {sub:"基本電學",topic:"並聯電阻",make(){const p=pick([[3,6],[2,2],[4,4],[6,3],[2,6],[4,12],[10,10],[5,20],[6,12],[8,8],[3,3],[10,40]]),a=p[0],b=p[1],r=Math.round(a*b/(a+b)*100)/100;return {q:`${a}Ω 與 ${b}Ω 並聯,總電阻?`,sol:`(積分之和)=(${a}×${b})/(${a}+${b})=${r}Ω`,...opts4(r,[a+b,Math.abs(a-b),(a+b)/2],"Ω")};}},
+ {sub:"基本電學",topic:"分壓定則",make(){const a=pick([2,3,4,5]),b=pick([2,3,4,6]),Vt=pick([12,24,10,20,36]),Vb=Math.round(Vt*b/(a+b)*100)/100;return {q:`${Vt}V 加在 ${a}Ω 與 ${b}Ω 串聯,${b}Ω 兩端電壓?`,sol:`分壓:${Vt}×${b}/(${a}+${b})=${Vb}V`,...opts4(Vb,[Math.round(Vt*a/(a+b)*100)/100,Vt/2,Vt],"V")};}},
+ {sub:"基本電學",topic:"分流定則",make(){const pr=pick([[3,6,9],[2,2,8],[4,4,10],[6,3,9],[5,5,10],[2,6,8],[4,12,8]]),a=pr[0],b=pr[1],It=pr[2],Ia=Math.round(It*b/(a+b)*100)/100;return {q:`總電流 ${It}A 進入 ${a}Ω 與 ${b}Ω 並聯,流過 ${a}Ω 的電流?`,sol:`分流取對面:${It}×${b}/(${a}+${b})=${Ia}A`,...opts4(Ia,[Math.round(It*a/(a+b)*100)/100,It/2,It],"A")};}},
+ {sub:"基本電學",topic:"電功率",make(){const V=pick([10,12,20,50,110,100]),I=pick([2,3,4,5]),P=V*I;return {q:`電壓 ${V}V、電流 ${I}A,功率?`,sol:`P=VI=${V}×${I}=${P}W`,...opts4(P,[V+I,Math.round(V/I),P*2],"W")};}},
+ {sub:"基本電學",topic:"電功率",make(){const I=pick([2,3,4,5]),R=pick([2,5,10,20]),P=I*I*R;return {q:`電流 ${I}A 通過 ${R}Ω,消耗功率?`,sol:`P=I²R=${I}²×${R}=${P}W`,...opts4(P,[I*R,I*R*2,R],"W")};}},
+ {sub:"基本電學",topic:"度電計算",make(){const P=pick([100,200,500,1000,60,40,1500]),t=pick([2,3,4,5,8,10]),d=Math.round(P*t/1000*1000)/1000;return {q:`${P}W 的電器用 ${t} 小時,耗幾度電?`,sol:`度=(W×h)/1000=(${P}×${t})/1000=${d} 度`,...opts4(d,[P*t,d*10,P*t/100]," 度")};}},
+ {sub:"基本電學",topic:"電荷",make(){const I=pick([0.5,1,2,3,4]),t=pick([2,3,4,5,10]),Q=Math.round(I*t*100)/100;return {q:`電流 ${I}A 流過 ${t} 秒,電荷?`,sol:`Q=It=${I}×${t}=${Q}C`,...opts4(Q,[I+t,Q*2,t]," C")};}},
+ {sub:"基本電學",topic:"色碼",make(){const d1=ri(1,9),d2=ri(0,9),m=ri(0,4),val=(d1*10+d2)*Math.pow(10,m);return {q:`色碼「${CB[d1]}${CB[d2]}${CB[m]}」的電阻值?`,sol:`${CB[d1]}=${d1}、${CB[d2]}=${d2}、${CB[m]}=×10^${m} → ${d1*10+d2}×${Math.pow(10,m)} = ${val}Ω`,...opts4(val,[(d1*10+d2)*Math.pow(10,m+1),(d1*10+d2),(d1*10+d2)*Math.pow(10,Math.max(0,m-1))],"Ω")};}},
+ {sub:"基本電學",topic:"交流有效值",make(){const peak=pick([10,20,100,200,50,155]),rms=Math.round(peak*0.707*10)/10;return {q:`交流峰值 ${peak}V,有效值約?`,sol:`RMS=峰值×0.707=${peak}×0.707≈${rms}V`,...opts4(rms,[peak,Math.round(peak*1.414*10)/10,peak/2],"V")};}},
+ {sub:"基本電學",topic:"頻率週期",make(){const pr=pick([[20,50],[10,100],[5,200],[25,40],[50,20],[2,500]]),Tms=pr[0],f=pr[1];return {q:`交流週期 ${Tms}ms,頻率多少?`,sol:`f=1/T=1/${Tms/1000}s=${f}Hz`,...opts4(f,[Tms,f*2,Math.round(1000/Tms/2)],"Hz")};}},
+ {sub:"電工機械",topic:"變壓器",make(){const pr=pick([[400,100,220],[200,50,100],[100,300,110],[500,100,220],[240,60,120],[100,200,60]]),N1=pr[0],N2=pr[1],V1=pr[2],V2=Math.round(V1*N2/N1*100)/100;return {q:`變壓器一次 ${N1} 匝、二次 ${N2} 匝,一次 ${V1}V,二次電壓?`,sol:`V2=V1×N2/N1=${V1}×${N2}/${N1}=${V2}V`,...opts4(V2,[Math.round(V1*N1/N2*100)/100,V1,V1/2],"V")};}},
+ {sub:"電工機械",topic:"同步轉速",make(){const f=pick([50,60]),P=pick([2,4,6,8]),Ns=120*f/P;return {q:`頻率 ${f}Hz、${P} 極三相感應機,同步轉速?`,sol:`Ns=120f/P=120×${f}/${P}=${Ns} rpm`,...opts4(Ns,[60*f/P,120*f*P,Math.round(120*P/f)]," rpm")};}},
+ {sub:"電工機械",topic:"轉差率",make(){const f=pick([50,60]),P=pick([2,4]),Ns=120*f/P,s=pick([2,3,4,5]),Nr=Math.round(Ns*(1-s/100)),S=Math.round((Ns-Nr)/Ns*1000)/10;return {q:`同步轉速 ${Ns}、實際 ${Nr} rpm,轉差率?`,sol:`S=(Ns−Nr)/Ns=(${Ns}−${Nr})/${Ns}≈${S}%`,...opts4(S,[Math.round(Nr/Ns*1000)/10,S*2,100-S],"%")};}}
+];
+function makeGen(g){const m=g.make();return {key:"g"+(genSeq++),sub:g.sub,topic:g.topic,q:m.q,opt:m.opt,ans:m.ans,sol:m.sol,gen:true};}
+function buildQuestions(sel,n){
+  const gens=GEN.filter(g=>!sel||g.sub===sel);
+  const statics=shuffleArr(state.quiz.filter(q=>!sel||q.sub===sel));
+  const out=[],usedS=new Set(),usedT=new Set();
+  for(let k=0;k<n;k++){
+    const staticLeft=statics.some(s=>!usedS.has(s.id));
+    const useGen=gens.length && (Math.random()<0.72 || !staticLeft);
+    if(useGen){ let qy,gd=0; do{qy=makeGen(pick(gens));gd++;}while(usedT.has(qy.q)&&gd<10); usedT.add(qy.q); out.push(qy); }
+    else{ const s=statics.find(q=>!usedS.has(q.id)); if(!s){ if(gens.length){out.push(makeGen(pick(gens)));continue;} else break; } usedS.add(s.id); out.push({key:s.id,statRef:s.id,sub:s.sub,topic:s.topic||"",q:s.q,opt:s.opt,ans:s.ans,sol:s.sol,gen:false}); }
+  }
+  return out;
+}
+
+/* ---------- state ---------- */
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function defaultState(){
+  return {
+    examDate:"2027-04-24", target:45,
+    streak:0, lastActive:null, totalMin:0, weekMin:0, weekStart:todayStr(),
+    today:{date:todayStr(), g1:false,g2:false,g3:false, min:0},
+    cards:SEED_CARDS.map((c,i)=>({id:"c"+i,sub:c[0],q:c[1],a:c[2],mn:c[3],box:1,due:todayStr()})),
+    quiz:SEED_QUIZ.map((q,i)=>({id:"q"+i,sub:q[0],q:q[1],opt:q[2],ans:q[3],sol:q[4],seen:0,ok:0})),
+    wrong:[]
+  };
+}
+let state;
+function mergeSeed(){
+  const haveC=new Set(state.cards.map(c=>c.id));
+  SEED_CARDS.forEach((c,i)=>{ const id="c"+i; if(!haveC.has(id)) state.cards.push({id,sub:c[0],q:c[1],a:c[2],mn:c[3],box:1,due:todayStr()}); });
+  const haveQ=new Set(state.quiz.map(q=>q.id));
+  SEED_QUIZ.forEach((q,i)=>{ const id="q"+i; if(!haveQ.has(id)) state.quiz.push({id,sub:q[0],q:q[1],opt:q[2],ans:q[3],sol:q[4],seen:0,ok:0}); });
+}
+(function init(){
+  const raw=loadRaw();
+  state = raw ? JSON.parse(raw) : defaultState();
+  mergeSeed();
+  state.wrong=(state.wrong||[]).map(w=> typeof w==="string" ? (()=>{const s=state.quiz.find(x=>x.id===w); return s?{key:s.id,sub:s.sub,topic:s.topic||"",q:s.q,opt:s.opt,ans:s.ans,sol:s.sol}:null;})() : w ).filter(Boolean);
+  if(state.examDate==="2027-05-02") state.examDate="2027-04-24"; // update old default to 116 estimate
+  rolloverDay();
+})();
+function rolloverDay(){
+  const t=todayStr();
+  if(state.today.date!==t){
+    // streak logic
+    const done = state.today.g1&&state.today.g2&&state.today.g3;
+    if(done){ state.lastActive=state.today.date; }
+    // if yesterday not fully done and gap, streak handled on completion; reset today
+    state.today={date:t, g1:false,g2:false,g3:false, min:0};
+  }
+  // weekly minutes reset every 7 days
+  if(!state.weekStart) state.weekStart=t;
+  if(daysBetween(state.weekStart,t)>=7){ state.weekMin=0; state.weekStart=t; }
+  save();
+}
+function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const app=$("#app");
+let view="today";
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1600); }
+function daysLeft(){ const d=daysBetween(todayStr(),state.examDate); return d; }
+function subMastery(sub){
+  const cs=state.cards.filter(c=>c.sub===sub);
+  const qs=state.quiz.filter(q=>q.sub===sub && q.seen>0);
+  let boxScore = cs.length? cs.reduce((s,c)=>s+(c.box-1),0)/(cs.length*4) : null; // 0..1
+  let qScore = qs.length? qs.reduce((s,q)=>s+q.ok/q.seen,0)/qs.length : null;
+  let parts=[boxScore,qScore].filter(x=>x!==null);
+  if(!parts.length) return 0;
+  return Math.round(parts.reduce((a,b)=>a+b,0)/parts.length*100);
+}
+function dueCards(sub){
+  let list=state.cards.filter(c=>!sub||c.sub===sub);
+  const t=todayStr();
+  list.sort((a,b)=> (a.due<=t?0:1)-(b.due<=t?0:1) || a.box-b.box);
+  return list;
+}
+
+/* ---------- render ---------- */
+function setView(v){ view=v; document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); render(); window.scrollTo(0,0); }
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
+
+function render(){
+  $("#daysLeft").textContent = daysLeft()>=0?daysLeft():"–";
+  if(view==="today") return renderToday();
+  if(view==="cards") return renderCards();
+  if(view==="quiz") return renderQuiz();
+  if(view==="wrong") return renderWrong();
+  if(view==="more") return renderMore();
+}
+
+/* ===== TODAY ===== */
+function renderToday(){
+  const t=state.today;
+  const cp=currentPlan();
+  const done=[t.g1,t.g2,t.g3].filter(Boolean).length;
+  const pct=Math.round(done/3*100);
+  const full=done===3;
+  app.innerHTML=`
+    <div class="card">
+      <div class="eyebrow">今天的電量</div>
+      <div class="batt-wrap">
+        <div class="batt">
+          <div class="seg s3 ${t.g3?'on':''}"></div>
+          <div class="seg s2 ${t.g2?'on':''}"></div>
+          <div class="seg s1 ${t.g1?'on':''}"></div>
+        </div>
+        <div class="batt-txt">
+          <div class="pct">${pct}%</div>
+          <h2>${full?'今天充飽了 🎉':'再充一下'}</h2>
+          <p>${full?'三關都完成,明天見!':'完成三關就滿電'}</p>
+        </div>
+      </div>
+      <button class="gate ${t.g1?'done':''}" data-go="cards"><span class="num">1</span>
+        <span class="g-body"><b>暖身・記憶卡</b><span>翻 12 張,把公式口訣叫回來</span></span>
+        <span class="tick">${t.g1?'✓':''}</span></button>
+      <button class="gate ${t.g2?'done':''}" data-go="quiz"><span class="num">2</span>
+        <span class="g-body"><b>主力・主題練習</b><span>做今天的選擇題</span></span>
+        <span class="tick">${t.g2?'✓':''}</span></button>
+      <button class="gate ${t.g3?'done':''}" data-go="wrong"><span class="num">3</span>
+        <span class="g-body"><b>收尾・錯題複習</b><span>把不會的抓回來(${state.wrong.length} 題)</span></span>
+        <span class="tick">${t.g3?'✓':''}</span></button>
+    </div>
+
+    <div class="mini">
+      <div class="m"><b>${state.streak}</b><span>連續天數 🔥</span></div>
+      <div class="m"><b>${t.min}</b><span>今天分鐘</span></div>
+      <div class="m"><b>${state.weekMin}</b><span>本週分鐘</span></div>
+    </div>
+
+    <div class="card" style="border-left:5px solid var(--amber)">
+      <div class="eyebrow">${cp.soon?'即將開始':'本月重點'}・${cp.p[0].replace('-','/')}</div>
+      <div style="font-size:16.5px;font-weight:800;margin-top:6px">${cp.p[1]}</div>
+      <p style="font-size:13.5px;color:var(--sub);margin-top:4px">${cp.p[2]}</p>
+      <button class="btn ghost sm" data-go="more" style="margin-top:10px">看完整 8 個月計畫</button>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">計時器・目標 ${state.target} 分</div>
+      <div class="timer" style="margin-top:10px">
+        <div class="disp" id="tdisp">00:00</div>
+        <div style="display:flex;gap:8px">
+          <button class="chip ${state.target==30?'sel':''}" data-t="30">30</button>
+          <button class="chip ${state.target==45?'sel':''}" data-t="45">45</button>
+          <button class="chip ${state.target==60?'sel':''}" data-t="60">60</button>
+        </div>
+      </div>
+      <div class="rowbtn" style="margin-top:12px">
+        <button class="btn ${timer.running?'':'amber'} sm" id="tbtn">${timer.running?'暫停':'開始計時'}</button>
+        <button class="btn ghost sm" id="tstop">結束並記錄</button>
+      </div>
+    </div>
+  `;
+  document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.go)));
+  document.querySelectorAll("[data-t]").forEach(b=>b.addEventListener("click",()=>{state.target=+b.dataset.t;save();render();}));
+  $("#tbtn").addEventListener("click",toggleTimer);
+  $("#tstop").addEventListener("click",stopTimer);
+  updTimerDisp();
+}
+
+/* timer */
+let timer={running:false, sec:0, h:null};
+function toggleTimer(){
+  if(timer.running){ clearInterval(timer.h); timer.running=false; }
+  else { timer.running=true; timer.h=setInterval(()=>{timer.sec++; updTimerDisp();},1000); }
+  if(view==="today") $("#tbtn").outerHTML=`<button class="btn ${timer.running?'':'amber'} sm" id="tbtn">${timer.running?'暫停':'開始計時'}</button>`, $("#tbtn").addEventListener("click",toggleTimer);
+}
+function updTimerDisp(){ const el=$("#tdisp"); if(!el)return; const m=String(Math.floor(timer.sec/60)).padStart(2,"0"),s=String(timer.sec%60).padStart(2,"0"); el.textContent=m+":"+s; }
+function stopTimer(){
+  clearInterval(timer.h); timer.running=false;
+  const mins=Math.round(timer.sec/60);
+  if(mins>0){ state.today.min+=mins; state.totalMin+=mins; state.weekMin+=mins; save(); toast("記錄 +"+mins+" 分鐘 👍"); }
+  timer.sec=0; render();
+}
+
+/* ===== CARDS (flashcards) ===== */
+let cardSess=null;
+function renderCards(){
+  if(!cardSess){
+    app.innerHTML=`
+      <div class="sec-title">記憶卡・選一個範圍</div>
+      <div class="card">
+        <div class="pill-row" id="subpills">
+          <button class="pill sel" data-s="">全部</button>
+          ${SUBJECTS.map(s=>`<button class="pill" data-s="${s}">${s}</button>`).join("")}
+        </div>
+        <button class="btn amber" id="startCards" style="margin-top:14px">開始翻卡(12 張)</button>
+        <button class="btn ghost sm" id="addCardBtn" style="margin-top:10px">＋ 自己新增一張卡</button>
+      </div>
+      <div class="card">
+        <div class="eyebrow">各科掌握度</div>
+        ${SUBJECTS.map(s=>bar(s,subMastery(s))).join("")}
+      </div>`;
+    let sel="";
+    document.querySelectorAll("#subpills .pill").forEach(p=>p.addEventListener("click",()=>{
+      document.querySelectorAll("#subpills .pill").forEach(x=>x.classList.remove("sel"));
+      p.classList.add("sel"); sel=p.dataset.s;
+    }));
+    $("#startCards").addEventListener("click",()=>{ cardSess={list:dueCards(sel).slice(0,12),i:0,flip:false}; if(!cardSess.list.length){cardSess=null;toast("這個範圍還沒有卡片");return;} renderCards(); });
+    $("#addCardBtn").addEventListener("click",()=>showAddCard());
+    return;
+  }
+  // session
+  if(cardSess.i>=cardSess.list.length){
+    cardSess=null;
+    state.today.g1=true; bumpStreak(); save();
+    app.innerHTML=`<div class="card celebrate"><span class="big-emoji">🔋</span><h2>暖身完成!</h2><p style="color:var(--sub);margin-top:6px">第 1 關搞定,去做主題練習吧。</p><button class="btn" id="toQuiz" style="margin-top:16px">前往第 2 關</button></div>`;
+    $("#toQuiz").addEventListener("click",()=>setView("quiz"));
+    return;
+  }
+  const c=cardSess.list[cardSess.i];
+  app.innerHTML=`
+    <div class="hint">${cardSess.i+1} / ${cardSess.list.length}　點卡片看答案</div>
+    <div class="flip ${cardSess.flip?'on':''}" id="flip">
+      <div class="flip-inner">
+        <div class="face"><span class="tag">${c.sub}</span><div class="q">${c.q}</div><div class="hint" style="margin-top:16px">👆 點一下看答案</div></div>
+        <div class="face back"><span class="tag">答案</span><div class="a">${c.a}</div>${c.mn?`<div class="mn">💡 ${c.mn}</div>`:""}</div>
+      </div>
+    </div>
+    ${cardSess.flip?`<div class="rowbtn">
+        <button class="btn no" data-r="0">再看一次</button>
+        <button class="btn yes" data-r="1">我會了</button></div>`:``}
+  `;
+  $("#flip").addEventListener("click",()=>{ cardSess.flip=true; renderCards(); });
+  document.querySelectorAll("[data-r]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.r==="1"){ c.box=Math.min(5,c.box+1); c.due=addDays(c.box); }
+    else { c.box=1; c.due=todayStr(); }
+    save(); cardSess.i++; cardSess.flip=false; renderCards();
+  }));
+}
+function addDays(box){ const iv=[0,1,2,4,7,15][box]||1; const d=new Date(); d.setDate(d.getDate()+iv); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function bar(lab,pct){ return `<div class="prog"><div class="lab"><span>${lab}</span><span>${pct}%</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`; }
+
+/* ===== QUIZ ===== */
+let quizSess=null;
+function renderQuiz(){
+  if(!quizSess){
+    app.innerHTML=`
+      <div class="sec-title">主題練習・選一個範圍</div>
+      <div class="card">
+        <div class="pill-row" id="qsub">
+          <button class="pill sel" data-s="">今日綜合</button>
+          ${SUBJECTS.map(s=>`<button class="pill" data-s="${s}">${s}</button>`).join("")}
+        </div>
+        <button class="btn" id="startQuiz" style="margin-top:14px">開始練習(12 題)</button>
+        <button class="btn ghost sm" id="addQBtn" style="margin-top:10px">＋ 自己新增一題</button>
+      </div>
+      <p class="hint" style="margin-top:12px">基本電學、電工機械的計算題會自動換數字出題,每天都不一樣。</p>`;
+    let sel="";
+    document.querySelectorAll("#qsub .pill").forEach(p=>p.addEventListener("click",()=>{document.querySelectorAll("#qsub .pill").forEach(x=>x.classList.remove("sel"));p.classList.add("sel");sel=p.dataset.s;}));
+    $("#startQuiz").addEventListener("click",()=>{
+      const list=buildQuestions(sel,12);
+      if(!list.length){toast("這個範圍還沒有題目");return;}
+      quizSess={list,i:0,answered:false,correctCount:0,sel};
+      renderQuiz();
+    });
+    $("#addQBtn").addEventListener("click",()=>showAddQuiz());
+    return;
+  }
+  if(quizSess.i>=quizSess.list.length){
+    const n=quizSess.list.length, ok=quizSess.correctCount, sel=quizSess.sel;
+    quizSess=null;
+    state.today.g2=true; bumpStreak(); save();
+    app.innerHTML=`<div class="card celebrate"><span class="big-emoji">✏️</span><h2>做完了!</h2><p style="color:var(--sub);margin-top:6px">答對 ${ok} / ${n} 題。答錯的已放進錯題本。</p>
+      <button class="btn" id="toWrong" style="margin-top:16px">去複習錯題(第 3 關)</button>
+      <button class="btn amber sm" id="more12" style="margin-top:10px">意猶未盡,再加練 12 題</button></div>`;
+    $("#toWrong").addEventListener("click",()=>setView("wrong"));
+    $("#more12").addEventListener("click",()=>{ const list=buildQuestions(sel,12); quizSess={list,i:0,answered:false,correctCount:0,sel}; renderQuiz(); });
+    return;
+  }
+  const q=quizSess.list[quizSess.i];
+  app.innerHTML=`
+    <div class="hint">${quizSess.i+1} / ${quizSess.list.length}${q.gen?'　·　自動出題':''}</div>
+    <div class="card">
+      <span class="tag" style="font-size:11px;font-weight:700;color:var(--blue);background:#eaf0ff;padding:3px 9px;border-radius:999px">${q.sub}${q.topic?'・'+q.topic:''}</span>
+      <div style="font-size:17.5px;font-weight:700;margin-top:10px">${q.q}</div>
+      <div id="opts">${q.opt.map((o,i)=>`<button class="opt" data-i="${i}"><span class="k">${"ABCD"[i]}</span>${o}</button>`).join("")}</div>
+      <div id="solveBox"></div>
+      <div id="qbtns"></div>
+    </div>`;
+  quizSess.answered=false;
+  document.querySelectorAll(".opt").forEach(b=>b.addEventListener("click",()=>{
+    if(quizSess.answered)return; quizSess.answered=true;
+    const pk=+b.dataset.i, correct=q.ans;
+    if(q.statRef){ const rec=state.quiz.find(x=>x.id===q.statRef); if(rec){rec.seen++; if(pk===correct)rec.ok++;} }
+    document.querySelectorAll(".opt").forEach((o,i)=>{ if(i===correct)o.classList.add("correct"); if(i===pk&&pk!==correct)o.classList.add("wrong"); });
+    if(pk===correct){ quizSess.correctCount++; removeWrong(q.key); toast("答對 ✓"); }
+    else { addWrong(q); }
+    $("#solveBox").innerHTML=`<div class="solve"><b>${pk===correct?'正確!':'正解 '+"ABCD"[correct]}</b>　${q.sol}</div>`;
+    const hasGen=GEN.some(g=>g.topic===q.topic);
+    $("#qbtns").innerHTML=(pk!==correct&&hasGen?`<button class="btn amber sm" id="drill" style="margin-top:12px">同類再一題(換數字)</button>`:``)+`<button class="btn" id="nextQ" style="margin-top:10px">下一題 →</button>`;
+    if(pk!==correct&&hasGen){ $("#drill").addEventListener("click",()=>{ const g=GEN.find(x=>x.topic===q.topic); quizSess.list.splice(quizSess.i+1,0,makeGen(g)); quizSess.i++; renderQuiz(); }); }
+    $("#nextQ").addEventListener("click",()=>{ quizSess.i++; renderQuiz(); });
+    save();
+  }));
+}
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function addWrong(q){ const key=q.key||q.id; if(!state.wrong.some(w=>w.key===key)) state.wrong.push({key,sub:q.sub,topic:q.topic||"",q:q.q,opt:q.opt,ans:q.ans,sol:q.sol}); }
+function removeWrong(key){ state.wrong=state.wrong.filter(w=>w.key!==key); }
+
+/* ===== WRONG book ===== */
+let wrongSess=null;
+function renderWrong(){
+  if(wrongSess){ return renderWrongSess(); }
+  if(!state.wrong.length){
+    app.innerHTML=`<div class="card"><div class="empty"><span class="big-emoji">🎯</span>錯題本是空的<br>做練習答錯的題目會自動收進來,<br>複習到答對就會移除。
+      <button class="btn ghost sm" id="markG3" style="margin-top:16px">今天沒有錯題,完成第 3 關</button></div></div>`;
+    $("#markG3").addEventListener("click",()=>{ state.today.g3=true; bumpStreak(); save(); toast("第 3 關完成 ✓"); setView("today"); });
+    return;
+  }
+  app.innerHTML=`
+    <div class="sec-title">錯題本・${state.wrong.length} 題</div>
+    <div class="card">
+      <p style="color:var(--sub);font-size:14px">把答錯的題目重做一遍,答對就移除。全部清完就滿電了。</p>
+      <button class="btn amber" id="startWrong" style="margin-top:14px">開始複習</button>
+    </div>`;
+  $("#startWrong").addEventListener("click",()=>{ wrongSess={items:state.wrong.slice(),i:0}; renderWrong(); });
+}
+function renderWrongSess(){
+  if(wrongSess.i>=wrongSess.items.length){
+    wrongSess=null; state.today.g3=true; bumpStreak(); save();
+    app.innerHTML=`<div class="card celebrate"><span class="big-emoji">⚡</span><h2>三關全清!</h2><p style="color:var(--sub);margin-top:6px">今天充飽電了,連續 ${state.streak} 天 🔥</p><button class="btn" id="home" style="margin-top:16px">回今天</button></div>`;
+    $("#home").addEventListener("click",()=>setView("today"));
+    return;
+  }
+  const q=wrongSess.items[wrongSess.i];
+  if(!q){ wrongSess.i++; return renderWrong(); }
+  app.innerHTML=`
+    <div class="hint">錯題複習　${wrongSess.i+1} / ${wrongSess.items.length}</div>
+    <div class="card">
+      <span class="tag" style="font-size:11px;font-weight:700;color:var(--red);background:#fdece8;padding:3px 9px;border-radius:999px">${q.sub}${q.topic?'・'+q.topic:''}</span>
+      <div style="font-size:17.5px;font-weight:700;margin-top:10px">${q.q}</div>
+      <div id="opts">${q.opt.map((o,i)=>`<button class="opt" data-i="${i}"><span class="k">${"ABCD"[i]}</span>${o}</button>`).join("")}</div>
+      <div id="solveBox"></div>
+      <button class="btn hidden" id="nextW" style="margin-top:14px">下一題 →</button>
+    </div>`;
+  let answered=false;
+  document.querySelectorAll(".opt").forEach(b=>b.addEventListener("click",()=>{
+    if(answered)return; answered=true;
+    const pk=+b.dataset.i, correct=q.ans;
+    document.querySelectorAll(".opt").forEach((o,i)=>{ if(i===correct)o.classList.add("correct"); if(i===pk&&pk!==correct)o.classList.add("wrong"); });
+    if(pk===correct){ removeWrong(q.key); toast("答對,移出錯題本 ✓"); }
+    else { toast("再記一次正解"); }
+    $("#solveBox").innerHTML=`<div class="solve"><b>${pk===correct?'正確!':'正解 '+"ABCD"[correct]}</b>　${q.sol}</div>`;
+    $("#nextW").classList.remove("hidden"); save();
+  }));
+  $("#nextW").addEventListener("click",()=>{ wrongSess.i++; renderWrong(); });
+}
+
+/* ===== ADD content ===== */
+function showAddCard(){
+  app.innerHTML=`
+    <div class="sec-title">新增記憶卡</div>
+    <div class="card">
+      <label class="fld">科目</label>
+      <select id="ac_sub">${SUBJECTS.map(s=>`<option>${s}</option>`).join("")}</select>
+      <label class="fld">正面(問題)</label><textarea id="ac_q" placeholder="例:歐姆定律公式?"></textarea>
+      <label class="fld">背面(答案)</label><textarea id="ac_a" placeholder="例:V = I × R"></textarea>
+      <label class="fld">口訣(可留空)</label><input id="ac_mn" placeholder="例:V像老大">
+      <button class="btn" id="ac_save" style="margin-top:16px">儲存卡片</button>
+      <button class="btn ghost sm" id="ac_back" style="margin-top:10px">取消</button>
+    </div>`;
+  $("#ac_save").addEventListener("click",()=>{
+    const q=$("#ac_q").value.trim(),a=$("#ac_a").value.trim();
+    if(!q||!a){toast("正面和背面都要填");return;}
+    state.cards.push({id:"c"+Date.now(),sub:$("#ac_sub").value,q,a,mn:$("#ac_mn").value.trim(),box:1,due:todayStr()});
+    save(); toast("已加入 ✓"); renderCards();
+  });
+  $("#ac_back").addEventListener("click",()=>renderCards());
+}
+function showAddQuiz(){
+  app.innerHTML=`
+    <div class="sec-title">新增選擇題</div>
+    <div class="card">
+      <label class="fld">科目</label>
+      <select id="aq_sub">${SUBJECTS.map(s=>`<option>${s}</option>`).join("")}</select>
+      <label class="fld">題目</label><textarea id="aq_q"></textarea>
+      <label class="fld">選項 A</label><input id="aq_a">
+      <label class="fld">選項 B</label><input id="aq_b">
+      <label class="fld">選項 C</label><input id="aq_c">
+      <label class="fld">選項 D</label><input id="aq_d">
+      <label class="fld">正解</label>
+      <select id="aq_ans"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select>
+      <label class="fld">解析(可留空)</label><textarea id="aq_sol"></textarea>
+      <button class="btn" id="aq_save" style="margin-top:16px">儲存題目</button>
+      <button class="btn ghost sm" id="aq_back" style="margin-top:10px">取消</button>
+    </div>`;
+  $("#aq_save").addEventListener("click",()=>{
+    const q=$("#aq_q").value.trim(),opt=["a","b","c","d"].map(x=>$("#aq_"+x).value.trim());
+    if(!q||opt.some(o=>!o)){toast("題目和四個選項都要填");return;}
+    state.quiz.push({id:"q"+Date.now(),sub:$("#aq_sub").value,q,opt,ans:+$("#aq_ans").value,sol:$("#aq_sol").value.trim()||"(自訂題目)",seen:0,ok:0});
+    save(); toast("已加入 ✓"); renderQuiz();
+  });
+  $("#aq_back").addEventListener("click",()=>renderQuiz());
+}
+
+/* ===== MORE / settings ===== */
+function renderMore(){
+  const cp=currentPlan();
+  app.innerHTML=`
+    <div class="sec-title">更多</div>
+    <div class="card">
+      <div class="eyebrow">8 個月讀書計畫</div>
+      <div style="margin-top:10px">
+        ${PLAN.map((p,i)=>`
+          <div style="display:flex;gap:11px;padding:10px 0;border-bottom:${i<PLAN.length-1?'1px solid var(--line)':'none'}">
+            <div style="flex:0 0 auto;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-weight:800;font-size:12px;line-height:1.1;text-align:center;${i===cp.idx?'background:var(--amber);color:#fff':'background:#eef2fb;color:var(--sub)'}">${p[0].slice(5).replace(/^0/,'')}<br>月</div>
+            <div style="flex:1">
+              <b style="font-size:14.5px">${p[1]}</b>
+              <p style="font-size:12.5px;color:var(--sub);margin-top:2px">${p[2]}</p>
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">考試設定</div>
+      <label class="fld">統測日期</label><input type="date" id="exam" value="${state.examDate}">
+      <label class="fld">每日目標(分鐘)</label>
+      <select id="tgt"><option ${state.target==30?'selected':''}>30</option><option ${state.target==45?'selected':''}>45</option><option ${state.target==60?'selected':''}>60</option></select>
+      <button class="btn sm" id="saveSet" style="margin-top:14px">儲存設定</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow">總覽</div>
+      <div class="mini" style="margin:12px 0 0">
+        <div class="m"><b>${state.cards.length}</b><span>記憶卡</span></div>
+        <div class="m"><b>${state.quiz.length}</b><span>題目</span></div>
+        <div class="m"><b>${state.totalMin}</b><span>累計分鐘</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">備份・轉移</div>
+      <p style="font-size:13.5px;color:var(--sub);margin:8px 0 12px">把進度存成一段文字備份;換手機或清資料前先複製起來。</p>
+      <button class="btn ghost sm" id="exp">匯出備份(複製)</button>
+      <button class="btn ghost sm" id="imp" style="margin-top:10px">貼上備份還原</button>
+      <button class="btn ghost sm" id="rst" style="margin-top:10px;color:var(--red)">清除全部重來</button>
+    </div>
+    <p style="text-align:center;font-size:12px;color:var(--sub);padding:6px 0 4px">內建題目為示範,可自行新增真正的考古題。<br>放在瀏覽器或自架網頁使用,進度會自動保存。</p>`;
+  $("#saveSet").addEventListener("click",()=>{ state.examDate=$("#exam").value||state.examDate; state.target=+$("#tgt").value; save(); toast("已儲存 ✓"); render(); });
+  $("#exp").addEventListener("click",()=>{ const s=JSON.stringify(state); navigator.clipboard?.writeText(s).then(()=>toast("已複製備份"),()=>prompt("複製這段文字:",s)); });
+  $("#imp").addEventListener("click",()=>{ const s=prompt("貼上備份文字:"); if(!s)return; try{ state=JSON.parse(s); save(); toast("還原成功 ✓"); rolloverDay(); render(); }catch(e){ toast("格式不對,還原失敗"); } });
+  $("#rst").addEventListener("click",()=>{ if(confirm("確定清除全部進度、回到最初?")){ state=defaultState(); save(); toast("已重置"); setView("today"); } });
+}
+
+/* ===== streak ===== */
+function bumpStreak(){
+  const all=state.today.g1&&state.today.g2&&state.today.g3;
+  if(all && state.lastActive!==state.today.date){
+    const gap = state.lastActive? daysBetween(state.lastActive,state.today.date):1;
+    state.streak = (gap===1)? state.streak+1 : 1;
+    state.lastActive=state.today.date;
+  }
+}
+
+/* boot */
+render();
+</script>
+</body>
+</html>
