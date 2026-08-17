@@ -375,25 +375,14 @@
     <section class="screen" id="screen-history">
       <button class="back" onclick="go('menu')">‹ 回設定</button>
       <h2 class="title">歷史報表</h2>
-      <div class="report-sum">
-        <div class="rs" style="background:var(--sea-2)">
-          <div class="k">昨天</div>
-          <div class="v num">$<span id="h-y-amt">0</span></div>
-          <div class="li-sub" style="color:#d7ece9;opacity:.9;margin-top:2px"><span id="h-y-jin" class="num">0</span> 斤</div>
-        </div>
-        <div class="rs" style="background:var(--gold)">
-          <div class="k">本週（週一起）</div>
-          <div class="v num">$<span id="h-w-amt">0</span></div>
-          <div class="li-sub" style="color:#fff;opacity:.9;margin-top:2px"><span id="h-w-jin" class="num">0</span> 斤</div>
-        </div>
-      </div>
-      <div class="section-label">本週客人排行</div>
-      <div id="h-rank"></div>
+      <div class="section-label">各趟紀錄（點一下看明細）</div>
+      <div id="h-rounds"></div>
+      <div class="divider"></div>
+      <button class="big go" onclick="copyRound()">📄 複製這趟報表（貼到 LINE）</button>
+      <textarea class="export" id="h-round-text" readonly style="margin-top:12px"></textarea>
+      <div class="divider"></div>
       <div class="section-label">每日紀錄（點一下看明細）</div>
       <div id="h-days"></div>
-      <div class="divider"></div>
-      <button class="big go" onclick="copyWeek()">📄 複製本週報表（貼到 LINE）</button>
-      <textarea class="export" id="h-week-text" readonly style="margin-top:12px"></textarea>
     </section>
 
     <!-- ========== 備份 / 還原 ========== -->
@@ -444,7 +433,7 @@
 <script>
 /* ================= 資料層 ================= */
 const KEY='oyster_db_v1';
-const DEFAULT={ customers:[], price:0, unit:'斤', round:{startTs:0, total:0}, tx:[], seeded:false };
+const DEFAULT={ customers:[], price:0, unit:'斤', round:{startTs:0, total:0}, rounds:[], tx:[], seeded:false };
 let DB = load();
 migrate();
 seedDemoIfFresh();
@@ -464,6 +453,7 @@ function migrate(){
   }
   // 付款狀態：舊資料（在「記帳＝已收」時代建立的）視為已付款
   DB.tx.forEach(x=>{ if(x.paid===undefined) x.paid=true; });
+  if(!Array.isArray(DB.rounds)) DB.rounds=[];
   save();
 }
 
@@ -916,7 +906,12 @@ function startNewRound(){
   const inv=parseFloat(v);
   if(isNaN(inv)||inv<0){ toast('斤數不對'); return; }
   if(!confirm('要開始新的一趟嗎？\n所有客人會清成「未收」，剩餘重算成 '+fmtJin(inv)+DB.unit+'。\n（過去的交易紀錄都會保留在報表裡）')) return;
-  DB.round={ startTs:Date.now(), total:inv }; save();
+  const now=Date.now();
+  // 封存上一趟（有實際開始過才存）
+  if(DB.round && DB.round.startTs>0){
+    DB.rounds.push({ no: DB.rounds.length+1, startTs: DB.round.startTs, endTs: now, total: DB.round.total });
+  }
+  DB.round={ startTs:now, total:inv }; save();
   toast('已開新一趟'); go('sell');
 }
 
@@ -1068,7 +1063,7 @@ function restoreBackup(){
 function clearAll(){
   if(!confirm('確定要清空「全部」資料嗎？\n所有客人與紀錄都會消失，無法復原。')) return;
   if(!confirm('最後確認：真的要全部清空、回到全新狀態？')) return;
-  DB=structuredClone(DEFAULT); DB.seeded=true; DB.round={startTs:0,total:0}; save();
+  DB=structuredClone(DEFAULT); DB.seeded=true; DB.round={startTs:0,total:0}; DB.rounds=[]; save();
   toast('已清空，回到全新狀態'); go('sell');
 }
 function exportCustomers(){
@@ -1109,22 +1104,49 @@ function dispDate(dk){
   let tag=''; if(dk===todayKey())tag='　今天'; else if(dk===yesterdayKey())tag='　昨天';
   return M+'/'+D+'（'+wd+'）'+tag;
 }
+function fmtDateTime(ts){
+  const d=new Date(ts);
+  const wd=['日','一','二','三','四','五','六'][d.getDay()];
+  return (d.getMonth()+1)+'/'+d.getDate()+'（'+wd+'）'+pad2(d.getHours())+':'+pad2(d.getMinutes());
+}
+/* 取得所有趟（已封存 + 目前進行中） */
+function allRounds(){
+  const arr=(DB.rounds||[]).map(r=>({...r, active:false}));
+  if(DB.round && DB.round.startTs>0){
+    arr.push({ no: arr.length+1, startTs: DB.round.startTs, endTs: null, total: DB.round.total, active:true });
+  }
+  return arr;
+}
+function roundStatsFor(r){
+  const start=r.startTs||0, end=r.endTs||Infinity;
+  const rows=DB.tx.filter(x=>x.ts>=start && x.ts<end);
+  const sold=rows.reduce((s,x)=>s+x.jin,0);
+  const income=rows.reduce((s,x)=>s+x.amount,0);
+  const paid=rows.filter(x=>x.paid).reduce((s,x)=>s+x.amount,0);
+  const remain=(r.total>0)? +(r.total-sold).toFixed(2) : null;
+  return { rows, count:rows.length, sold, income, paid, unpaid:income-paid, remain };
+}
 function renderHistory(){
-  const y=rangeSum(x=>x.date===yesterdayKey());
-  const wk=weekStartKey(); const w=rangeSum(x=>x.date>=wk);
-  el('h-y-amt').textContent=fmt(y.amt); el('h-y-jin').textContent=fmtJin(y.jin);
-  el('h-w-amt').textContent=fmt(w.amt); el('h-w-jin').textContent=fmtJin(w.jin);
-
-  // 本週客人排行
-  const map={};
-  DB.tx.filter(x=>x.date>=wk).forEach(x=>{ (map[x.cid]=map[x.cid]||{name:x.cname,count:0,jin:0,amt:0}); map[x.cid].count++; map[x.cid].jin+=x.jin; map[x.cid].amt+=x.amount; });
-  const rank=Object.values(map).sort((a,b)=>b.amt-a.amt);
-  const rb=el('h-rank'); rb.innerHTML= rank.length?'':'<div class="footer-note">本週還沒有紀錄。</div>';
-  rank.forEach((m,i)=>{
-    const div=document.createElement('div'); div.className='list-item';
-    div.innerHTML='<div class="li-main">'+(i+1)+'. '+escapeHtml(m.name)+'</div>'+
-      '<div class="li-sub num">'+m.count+' 次・'+fmtJin(m.jin)+DB.unit+'・$'+fmt(m.amt)+'</div>';
-    rb.appendChild(div);
+  // 各趟紀錄（新到舊）
+  const rounds=allRounds().slice().reverse();
+  const rb=el('h-rounds'); rb.innerHTML= rounds.length?'':'<div class="footer-note">還沒有任何一趟。到「這趟設定」設定進貨量就開始了。</div>';
+  rounds.forEach(r=>{
+    const st=roundStatsFor(r);
+    const wrap=document.createElement('div');
+    const head=document.createElement('div'); head.className='list-item'; head.style.cursor='pointer';
+    const title='第 '+r.no+' 趟'+(r.active?'（進行中）':'');
+    const remainTxt = st.remain===null?'—':fmtJin(st.remain);
+    head.innerHTML='<div><div class="li-main">'+title+'</div>'+
+      '<div class="li-sub num">'+fmtDateTime(r.startTs)+' 起　進貨 '+fmtJin(r.total)+DB.unit+'</div>'+
+      '<div class="li-sub num">售出 '+fmtJin(st.sold)+DB.unit+'・剩 '+remainTxt+DB.unit+(st.unpaid>0?('・未收 $'+fmt(st.unpaid)):'')+'</div></div>'+
+      '<div class="li-main num" style="color:var(--go-d)">$'+fmt(st.income)+' ▾</div>';
+    const detail=document.createElement('div'); detail.style.display='none'; detail.style.margin='-4px 0 12px';
+    head.onclick=()=>{
+      const open=detail.style.display==='none';
+      detail.style.display=open?'block':'none';
+      if(open && !detail.dataset.built){ detail.appendChild(buildRoundDetail(st.rows)); detail.dataset.built='1'; }
+    };
+    wrap.appendChild(head); wrap.appendChild(detail); rb.appendChild(wrap);
   });
 
   // 每日紀錄（可展開）
@@ -1143,39 +1165,45 @@ function renderHistory(){
     head.onclick=()=>{
       const open=detail.style.display==='none';
       detail.style.display=open?'block':'none';
-      if(open && !detail.dataset.built){ detail.appendChild(buildDayDetail(rows)); detail.dataset.built='1'; }
+      if(open && !detail.dataset.built){ detail.appendChild(buildRoundDetail(rows)); detail.dataset.built='1'; }
     };
     wrap.appendChild(head); wrap.appendChild(detail); db.appendChild(wrap);
   });
 
-  el('h-week-text').value=buildWeekText();
+  el('h-round-text').value=buildRoundText();
 }
-function buildDayDetail(rows){
+function buildRoundDetail(rows){
   const frag=document.createElement('div');
   frag.style.cssText='background:#fff;border:2px solid var(--line);border-top:none;border-radius:0 0 14px 14px;padding:4px 0;';
   const map={};
-  rows.forEach(x=>{ (map[x.cid]=map[x.cid]||{name:x.cname,count:0,jin:0,amt:0}); map[x.cid].count++; map[x.cid].jin+=x.jin; map[x.cid].amt+=x.amount; });
+  rows.forEach(x=>{ const m=(map[x.cid]=map[x.cid]||{name:x.cname,count:0,jin:0,amt:0,unpaid:0}); m.count++; m.jin+=x.jin; m.amt+=x.amount; if(!x.paid) m.unpaid+=x.amount; });
   Object.values(map).sort((a,b)=>b.amt-a.amt).forEach(m=>{
     const d=document.createElement('div');
     d.style.cssText='padding:9px 14px;font-size:16px;font-weight:700;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:8px;';
-    d.innerHTML='<span>'+escapeHtml(m.name)+'</span><span class="num" style="color:var(--muted)">'+m.count+'次・'+fmtJin(m.jin)+DB.unit+'・$'+fmt(m.amt)+'</span>';
+    const upTxt = m.unpaid>0 ? ('<span style="color:#b3720b">・未收$'+fmt(m.unpaid)+'</span>') : '<span style="color:var(--go-d)">・已收</span>';
+    d.innerHTML='<span>'+escapeHtml(m.name)+'</span><span class="num" style="color:var(--muted)">'+m.count+'次・'+fmtJin(m.jin)+DB.unit+'・$'+fmt(m.amt)+upTxt+'</span>';
     frag.appendChild(d);
   });
   return frag;
 }
-function buildWeekText(){
-  const wk=weekStartKey(); const rows=DB.tx.filter(x=>x.date>=wk); const w=rangeSum(x=>x.date>=wk);
-  let s='🦪 蚵仔週報\n本週賣出：$'+fmt(w.amt)+'\n賣出 '+fmtJin(w.jin)+DB.unit+'\n──────────\n';
-  const byDay={}; rows.forEach(x=>{ (byDay[x.date]=byDay[x.date]||[]).push(x); });
-  Object.keys(byDay).sort().forEach(dk=>{
-    const r=byDay[dk]; const a=r.reduce((s,x)=>s+x.amount,0), j=r.reduce((s,x)=>s+x.jin,0);
-    s+=dispDate(dk).replace(/　今天|　昨天/,'')+'　'+fmtJin(j)+DB.unit+'　$'+fmt(a)+'\n';
+function buildRoundText(){
+  const r={ startTs:DB.round.startTs, endTs:null, total:DB.round.total, no:(DB.rounds.length+1) };
+  const st=roundStatsFor(r);
+  const remainTxt = st.remain===null?'—':fmtJin(st.remain);
+  let s='🦪 蚵仔記帳・第 '+r.no+' 趟\n';
+  s+='進貨 '+fmtJin(r.total)+DB.unit+'　售出 '+fmtJin(st.sold)+DB.unit+'　剩 '+remainTxt+DB.unit+'\n';
+  s+='收入 $'+fmt(st.income)+(st.unpaid>0?('　未收 $'+fmt(st.unpaid)):'　全部收清')+'\n';
+  s+='──────────\n';
+  const map={};
+  st.rows.forEach(x=>{ const m=(map[x.cid]=map[x.cid]||{name:x.cname,jin:0,amt:0,unpaid:0}); m.jin+=x.jin; m.amt+=x.amount; if(!x.paid) m.unpaid+=x.amount; });
+  Object.values(map).sort((a,b)=>b.amt-a.amt).forEach(m=>{
+    s+=m.name+'　'+fmtJin(m.jin)+DB.unit+'　$'+fmt(m.amt)+(m.unpaid>0?('（未收$'+fmt(m.unpaid)+'）'):'')+'\n';
   });
   return s;
 }
-function copyWeek(){
-  const t=buildWeekText();
-  navigator.clipboard?.writeText(t).then(()=>toast('已複製，去 LINE 貼上'),()=>{ el('h-week-text').select(); toast('請長按上面文字複製'); });
+function copyRound(){
+  const t=buildRoundText();
+  navigator.clipboard?.writeText(t).then(()=>toast('已複製，去 LINE 貼上'),()=>{ el('h-round-text').select(); toast('請長按上面文字複製'); });
 }
 
 /* ================= Toast ================= */
