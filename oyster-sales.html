@@ -354,6 +354,19 @@
       <div id="cust-manage-list"></div>
     </section>
 
+    <!-- ========== 客戶歷史紀錄 ========== -->
+    <section class="screen" id="screen-custhist">
+      <button class="back" onclick="go('customers')">‹ 回客戶管理</button>
+      <h2 class="title" id="ch-name">客人</h2>
+      <div class="report-sum">
+        <div class="rs" style="background:var(--sea)"><div class="k">累計購買</div><div class="v num"><span id="ch-count">0</span> 次</div></div>
+        <div class="rs" style="background:var(--gold)"><div class="k">總斤數／金額</div><div class="v num"><span id="ch-jin">0</span>斤／$<span id="ch-amt">0</span></div></div>
+      </div>
+      <div class="footer-note" id="ch-last" style="text-align:left;margin-top:0"></div>
+      <div class="section-label">每一筆（新到舊）</div>
+      <div id="ch-tx"></div>
+    </section>
+
     <!-- ========== 今日報表 ========== -->
     <section class="screen" id="screen-report">
       <button class="back" onclick="go('menu')">‹ 回設定</button>
@@ -452,7 +465,11 @@ function migrate(){
     delete DB.inventory;
   }
   // 付款狀態：舊資料（在「記帳＝已收」時代建立的）視為已付款
-  DB.tx.forEach(x=>{ if(x.paid===undefined) x.paid=true; });
+  DB.tx.forEach(x=>{
+    if(x.paid===undefined) x.paid=true;
+    if(x.price===undefined) x.price = (x.jin>0)? Math.round(x.amount/x.jin) : 0;
+    if(x.edited===undefined) x.edited=false;
+  });
   if(!Array.isArray(DB.rounds)) DB.rounds=[];
   save();
 }
@@ -526,13 +543,14 @@ function custTodayStats(cid){
 }
 function custAllStats(cid){
   const rows=DB.tx.filter(x=>x.cid===cid);
-  return { count:rows.length, jin:rows.reduce((s,x)=>s+x.jin,0), amount:rows.reduce((s,x)=>s+x.amount,0) };
+  return { count:rows.length, jin:rows.reduce((s,x)=>s+x.jin,0), amount:rows.reduce((s,x)=>s+x.amount,0),
+    lastTs: rows.reduce((m,x)=>Math.max(m,x.ts),0) };
 }
 function fmt(n){ return (Math.round(n*100)/100).toLocaleString('en-US'); }
 function fmtJin(n){ return (Math.round(n*100)/100).toString(); }
 
 /* ================= 畫面切換 ================= */
-const screens=['sell','qty','pick','confirm','menu','setup','customers','report','history','backup'];
+const screens=['sell','qty','pick','confirm','menu','setup','customers','custhist','report','history','backup'];
 function el(id){ return document.getElementById(id); }
 function go(name){
   screens.forEach(s=>document.getElementById('screen-'+s).classList.toggle('on', s===name));
@@ -613,23 +631,29 @@ function renderQPay(){
   const w=document.getElementById('q-pay-wrap'); w.innerHTML='';
   if(!curCust) return;
   const st=custRoundStats(curCust.id);
-  if(st.count===0) return; // 這趟還沒買，不顯示付款
-  const state=custPayState(curCust.id);
-  const box=document.createElement('div'); box.className='pay-box '+state;
-  if(state==='unpaid'){
-    const amt=custRoundUnpaid(curCust.id).reduce((s,x)=>s+x.amount,0);
-    box.innerHTML='<div class="pay-line">本趟已買 '+fmtJin(st.jin)+DB.unit+'・共 $'+fmt(st.amount)+'</div>';
-    const btn=document.createElement('button'); btn.className='big go'; btn.style.marginTop='6px';
-    btn.innerHTML='✓ 收款 $'+fmt(amt);
-    btn.onclick=()=>{ markCustPaid(curCust.id); if(navigator.vibrate)navigator.vibrate(50); toast('已收款'); renderQPay(); };
-    box.appendChild(btn);
-  } else { // paid
-    box.innerHTML='<div class="pay-line">✓ 本趟已收款（'+fmtJin(st.jin)+DB.unit+'・$'+fmt(st.amount)+'）</div>';
-    const btn=document.createElement('button'); btn.className='pay-undo'; btn.textContent='取消收款（改回未收）';
-    btn.onclick=()=>{ unmarkCustPaid(curCust.id); toast('已改回未收'); renderQPay(); };
-    box.appendChild(btn);
+  if(st.count>0){
+    const state=custPayState(curCust.id);
+    const box=document.createElement('div'); box.className='pay-box '+state;
+    if(state==='unpaid'){
+      const amt=custRoundUnpaid(curCust.id).reduce((s,x)=>s+x.amount,0);
+      box.innerHTML='<div class="pay-line">本趟已買 '+fmtJin(st.jin)+DB.unit+'・共 $'+fmt(st.amount)+'</div>';
+      const btn=document.createElement('button'); btn.className='big go'; btn.style.marginTop='6px';
+      btn.innerHTML='✓ 收款 $'+fmt(amt);
+      btn.onclick=()=>{ markCustPaid(curCust.id); if(navigator.vibrate)navigator.vibrate(50); toast('已收款'); renderQPay(); };
+      box.appendChild(btn);
+    } else {
+      box.innerHTML='<div class="pay-line">✓ 本趟已收款（'+fmtJin(st.jin)+DB.unit+'・$'+fmt(st.amount)+'）</div>';
+      const btn=document.createElement('button'); btn.className='pay-undo'; btn.textContent='取消收款（改回未收）';
+      btn.onclick=()=>{ unmarkCustPaid(curCust.id); toast('已改回未收'); renderQPay(); };
+      box.appendChild(btn);
+    }
+    w.appendChild(box);
   }
-  w.appendChild(box);
+  const hist=document.createElement('button');
+  hist.className='pay-undo'; hist.style.marginTop='10px'; hist.style.width='100%';
+  hist.textContent='看這位客人的歷史紀錄 ›';
+  hist.onclick=()=>{ openCustHist(curCust.id); };
+  w.appendChild(hist);
 }
 function renderQuick(){
   const q=document.getElementById('quick-btns'); q.innerHTML='';
@@ -685,7 +709,7 @@ function editAmount(){
 let lastSavedCid=null;
 function saveSale(){
   const amt = curAmountOverride!==null ? curAmountOverride : Math.round(curJin*DB.price);
-  const rec={ id:uid(), cid:curCust.id, cname:curCust.name, jin:curJin, amount:amt, date:todayKey(), ts:Date.now(), paid:false };
+  const rec={ id:uid(), cid:curCust.id, cname:curCust.name, jin:curJin, amount:amt, price:DB.price, edited:(curAmountOverride!==null), date:todayKey(), ts:Date.now(), paid:false };
   DB.tx.push(rec); save();
   if(navigator.vibrate) navigator.vibrate(60);
   lastSavedCid=curCust.id;
@@ -927,9 +951,11 @@ function renderCustomers(){
 
     const top=document.createElement('div');
     top.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:10px;';
+    const lastTxt = s.lastTs>0 ? ('・最近 '+fmtDateTime(s.lastTs)) : '';
     top.innerHTML='<div><div class="li-main">'+escapeHtml(c.name)+'</div>'+
-      '<div class="li-sub num">累計 '+s.count+' 次・'+fmtJin(s.jin)+DB.unit+'</div></div>';
+      '<div class="li-sub num">累計 '+s.count+' 次・'+fmtJin(s.jin)+DB.unit+lastTxt+'</div></div>';
     const act=document.createElement('div'); act.className='li-actions';
+    const h=document.createElement('button'); h.className='mini g'; h.style.background='var(--gold)'; h.style.color='#3a2a05'; h.textContent='紀錄'; h.onclick=()=>openCustHist(c.id); act.appendChild(h);
     const e=document.createElement('button'); e.className='mini g'; e.textContent='改'; e.onclick=()=>editCustomer(c.id); act.appendChild(e);
     const d=document.createElement('button'); d.className='mini r'; d.textContent='刪'; d.onclick=()=>delCustomer(c.id); act.appendChild(d);
     top.appendChild(act);
@@ -978,6 +1004,30 @@ function delCustomer(cid){
   DB.customers=DB.customers.filter(x=>x.id!==cid); save(); renderCustomers();
 }
 
+/* ================= 客戶歷史紀錄 ================= */
+let curHistCid=null;
+function openCustHist(cid){ curHistCid=cid; renderCustHist(); go('custhist'); }
+function renderCustHist(){
+  const c=DB.customers.find(x=>x.id===curHistCid); if(!c) { go('customers'); return; }
+  const s=custAllStats(c.id);
+  el('ch-name').textContent=c.name+' 的購買紀錄';
+  el('ch-count').textContent=s.count;
+  el('ch-jin').textContent=fmtJin(s.jin);
+  el('ch-amt').textContent=fmt(s.amount);
+  el('ch-last').textContent = s.lastTs>0 ? ('最近購買：'+fmtDateTime(s.lastTs)+(c.phone?('　・　☎ '+c.phone):'')) : '還沒有購買紀錄。';
+  const box=el('ch-tx'); box.innerHTML='';
+  const rows=DB.tx.filter(x=>x.cid===c.id).sort((a,b)=>b.ts-a.ts);
+  if(rows.length===0){ box.innerHTML='<div class="footer-note">還沒有購買紀錄。</div>'; return; }
+  rows.forEach(x=>{
+    const div=document.createElement('div'); div.className='list-item';
+    const paidTag = x.paid ? '<span style="color:var(--go-d);font-weight:900">🟢已收</span>' : '<span style="color:#b3720b;font-weight:900">⚪未收</span>';
+    const editTag = x.edited ? '<span style="color:var(--muted)">・改過金額</span>' : '';
+    div.innerHTML='<div><div class="li-main">'+fmtJin(x.jin)+DB.unit+'　$'+fmt(x.amount)+'</div>'+
+      '<div class="li-sub num">'+fmtDateTime(x.ts)+'　單價$'+fmt(x.price||0)+'　'+paidTag+editTag+'</div></div>';
+    box.appendChild(div);
+  });
+}
+
 /* ================= 今日報表 ================= */
 function renderReport(){
   document.getElementById('rep-date').textContent=todayKey();
@@ -1006,8 +1056,9 @@ function renderReport(){
     const div=document.createElement('div'); div.className='list-item';
     const tm=new Date(x.ts); const hh=String(tm.getHours()).padStart(2,'0')+':'+String(tm.getMinutes()).padStart(2,'0');
     const tag = x.paid ? '<span style="color:var(--go-d);font-weight:900">🟢已收</span>' : '<span style="color:#b3720b;font-weight:900">⚪未收</span>';
+    const editTag = x.edited ? '<span style="color:var(--muted)">・改</span>' : '';
     div.innerHTML='<div><div class="li-main">'+escapeHtml(x.cname)+'　'+fmtJin(x.jin)+DB.unit+'</div>'+
-      '<div class="li-sub num">'+hh+'　$'+fmt(x.amount)+'　'+tag+'</div></div>';
+      '<div class="li-sub num">'+hh+'　$'+fmt(x.amount)+'　'+tag+editTag+'</div></div>';
     const acts=document.createElement('div'); acts.className='li-actions';
     const pay=document.createElement('button'); pay.className='mini '+(x.paid?'g':'tel');
     pay.textContent = x.paid?'改未收':'已收';
