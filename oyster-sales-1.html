@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>蚵仔記帳</title>
+<style>
+  :root{
+    --paper:#f6f2e8;
+    --ink:#17262a;
+    --sea:#0e3a3d;
+    --sea-2:#12514f;
+    --line:#d8cfb8;
+    --go:#1f9d55;
+    --go-d:#177a41;
+    --stop:#d23b2c;
+    --stop-d:#a82a1e;
+    --gold:#c8892b;
+    --muted:#5d6b66;
+    --shell:#fbfaf5;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+    background:var(--paper); color:var(--ink);
+    font-size:20px; line-height:1.35;
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior:none;
+  }
+  .num{font-variant-numeric:tabular-nums; font-feature-settings:"tnum";}
+  .app{max-width:640px; margin:0 auto; min-height:100%; display:flex; flex-direction:column;}
+
+  /* ---- 常駐大數字列（招牌） ---- */
+  header.board{
+    background:linear-gradient(160deg,var(--sea),var(--sea-2));
+    color:#fff; padding:16px 18px 18px; position:sticky; top:0; z-index:10;
+    box-shadow:0 4px 0 rgba(0,0,0,.12);
+  }
+  .board-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .board-title{font-size:19px; font-weight:800; letter-spacing:2px; opacity:.92;}
+  .gear{
+    background:rgba(255,255,255,.14); border:none; color:#fff;
+    width:52px; height:52px; border-radius:14px; font-size:26px;
+  }
+  .board-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .stat{background:rgba(255,255,255,.10); border-radius:16px; padding:12px 14px;}
+  .stat .k{font-size:16px; opacity:.85; margin-bottom:2px; font-weight:700;}
+  .stat .v{font-size:clamp(30px,9vw,46px); font-weight:900; line-height:1;}
+  .stat .v small{font-size:20px; font-weight:800; opacity:.85;}
+  .stat.remain .v{color:#ffe6a6;}
+
+  main{flex:1; padding:16px; padding-bottom:40px;}
+  .screen{display:none;} .screen.on{display:block;}
+
+  .hint{background:#fff5d8; border:2px solid var(--gold); color:#6b4c10;
+    border-radius:14px; padding:12px 14px; font-weight:700; margin-bottom:14px; font-size:18px;}
+  .hint button{margin-top:8px;}
+
+  /* ---- 大按鈕通用 ---- */
+  .big{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; border:none; border-radius:18px; font-weight:900;
+    padding:22px 16px; font-size:24px; color:#fff; cursor:pointer;
+    box-shadow:0 5px 0 rgba(0,0,0,.18); transition:transform .05s;
+  }
+  .big:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18);}
+  .go{background:var(--go); box-shadow:0 5px 0 var(--go-d);}
+  .go:active{box-shadow:0 2px 0 var(--go-d);}
+  .stop{background:var(--stop); box-shadow:0 5px 0 var(--stop-d);}
+  .stop:active{box-shadow:0 2px 0 var(--stop-d);}
+  .mic{background:var(--sea); box-shadow:0 5px 0 #072526; font-size:26px; padding:26px;}
+  .mic:active{box-shadow:0 2px 0 #072526;}
+  .mic.rec{animation:pulse .9s infinite; background:var(--stop); box-shadow:0 5px 0 var(--stop-d);}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.72}}
+
+  .section-label{font-size:16px; font-weight:800; color:var(--muted);
+    letter-spacing:2px; margin:18px 4px 10px;}
+
+  /* ---- 客戶格 ---- */
+  .cust-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .cust{
+    background:var(--shell); border:3px solid var(--line); border-radius:18px;
+    padding:18px 10px; font-size:26px; font-weight:900; color:var(--ink);
+    min-height:92px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; cursor:pointer; box-shadow:0 4px 0 var(--line);
+  }
+  .cust:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line);}
+  .cust .cust-name{display:flex; align-items:center; justify-content:center; line-height:1.1;}
+  .cust .dot{width:14px;height:14px;border-radius:50%;background:var(--gold);
+    display:inline-block;margin-right:8px;flex:none;}
+  .cust .cust-sub{font-size:15px; font-weight:800; margin-top:5px; opacity:.95;}
+  .cust.done{background:var(--go); border-color:var(--go-d); box-shadow:0 4px 0 var(--go-d); color:#fff;}
+  .cust.done:active{box-shadow:0 1px 0 var(--go-d);}
+  .cust.done .mark{font-size:26px; margin-right:8px; flex:none; line-height:1;}
+
+  /* ---- 數量鍵盤 ---- */
+  .picked-name{font-size:34px; font-weight:900; text-align:center; margin:6px 0 4px;}
+  .qty-show{font-size:clamp(56px,20vw,96px); font-weight:900; text-align:center;
+    line-height:1; margin:10px 0 4px; min-height:96px;}
+  .qty-unit{font-size:34px; color:var(--muted);}
+  .amount-show{font-size:30px; font-weight:800; text-align:center; color:var(--go-d); margin-bottom:14px;}
+  .quick{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;}
+  .quick button{background:#eae3d0; border:2px solid var(--line); border-radius:14px;
+    padding:16px 4px; font-size:22px; font-weight:900; color:var(--ink);}
+  .quick button:active{background:#ddd3ba;}
+  .pad{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .pad button{background:var(--shell); border:2px solid var(--line); border-radius:14px;
+    padding:20px 4px; font-size:30px; font-weight:900; color:var(--ink); box-shadow:0 3px 0 var(--line);}
+  .pad button:active{transform:translateY(2px); box-shadow:0 1px 0 var(--line);}
+  .pad .wide{grid-column:span 1;}
+
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;}
+
+  /* ---- 確認畫面 ---- */
+  .confirm-card{background:var(--shell); border:3px solid var(--sea); border-radius:22px;
+    padding:24px 18px; text-align:center; margin-bottom:18px;}
+  .confirm-card .cc-name{font-size:40px; font-weight:900;}
+  .confirm-card .cc-qty{font-size:clamp(46px,16vw,72px); font-weight:900; color:var(--sea); margin:6px 0;}
+  .confirm-card .cc-amt{font-size:38px; font-weight:900; color:var(--go-d);}
+  .confirm-card .cc-times{font-size:20px; color:var(--muted); margin-top:8px; font-weight:700;}
+  .ask{font-size:28px; font-weight:900; text-align:center; margin:6px 0 16px;}
+
+  /* ---- 家人選單 / 設定 / 報表 ---- */
+  .menu-list button{width:100%; text-align:left; background:var(--shell); border:2px solid var(--line);
+    border-radius:16px; padding:20px; font-size:22px; font-weight:800; color:var(--ink);
+    margin-bottom:12px; display:flex; align-items:center; gap:14px;}
+  .menu-list .ico{font-size:28px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:18px; font-weight:800; margin-bottom:6px; color:var(--muted);}
+  .field input{width:100%; font-size:26px; font-weight:800; padding:14px; border:2px solid var(--line);
+    border-radius:14px; background:#fff; color:var(--ink);}
+  .field input.small{font-size:20px; font-weight:600;}
+  .back{background:none; border:none; color:var(--sea); font-size:20px; font-weight:800;
+    padding:6px 0; margin-bottom:6px; display:flex; align-items:center; gap:6px;}
+  h2.title{font-size:26px; font-weight:900; margin:0 0 14px;}
+
+  .list-item{background:var(--shell); border:2px solid var(--line); border-radius:14px;
+    padding:14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .list-item .li-main{font-weight:800; font-size:19px;}
+  .list-item .li-sub{font-size:15px; color:var(--muted); margin-top:2px; font-weight:600;}
+  .li-actions{display:flex; gap:8px; flex:none;}
+  .mini{border:none; border-radius:10px; padding:10px 12px; font-size:16px; font-weight:800; color:#fff;}
+  .mini.g{background:var(--sea);} .mini.r{background:var(--stop);} .mini.tel{background:var(--go);}
+  .call-bar{display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;
+    background:var(--go); color:#fff; text-decoration:none; border-radius:14px; padding:16px;
+    font-size:23px; font-weight:900; box-shadow:0 4px 0 var(--go-d);}
+  .call-bar:active{transform:translateY(2px); box-shadow:0 1px 0 var(--go-d);}
+  .call-bar .num{font-size:24px;}
+
+  .report-sum{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;}
+  .report-sum .rs{background:var(--sea); color:#fff; border-radius:16px; padding:14px;}
+  .report-sum .rs .k{font-size:16px; opacity:.85; font-weight:700;}
+  .report-sum .rs .v{font-size:34px; font-weight:900; margin-top:2px;}
+
+  textarea.export{width:100%; height:180px; font-size:15px; padding:12px; border:2px solid var(--line);
+    border-radius:12px; font-family:inherit; background:#fff;}
+
+  /* ---- Toast ---- */
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:16px 24px; border-radius:16px; font-size:22px;
+    font-weight:900; z-index:50; opacity:0; pointer-events:none; transition:opacity .2s; box-shadow:0 6px 18px rgba(0,0,0,.3);}
+  .toast.on{opacity:1;}
+  .undo-bar{position:fixed; left:0; right:0; bottom:0; z-index:40; padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+    background:#fff; border-top:3px solid var(--line); display:none;}
+  .undo-bar.on{display:block;}
+  .undo-bar .max{max-width:640px; margin:0 auto; display:flex; gap:12px; align-items:center;}
+  .undo-bar .txt{flex:1; font-weight:800; font-size:18px;}
+  .undo-bar button{flex:none; background:var(--stop); color:#fff; border:none; border-radius:14px;
+    padding:14px 18px; font-size:19px; font-weight:900;}
+
+  .footer-note{font-size:14px; color:var(--muted); text-align:center; margin:22px 4px 8px; line-height:1.5;}
+  .divider{height:2px; background:var(--line); margin:18px 0; border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="board">
+    <div class="board-top">
+      <div class="board-title">🦪 蚵仔記帳</div>
+      <button class="gear" onclick="go('menu')" aria-label="設定">⚙️</button>
+    </div>
+    <div class="board-grid">
+      <div class="stat sold">
+        <div class="k">這趟賣出</div>
+        <div class="v num"><small>$</small><span id="b-sold">0</span></div>
+      </div>
+      <div class="stat remain">
+        <div class="k">還剩</div>
+        <div class="v num"><span id="b-remain">—</span><small id="b-unit">斤</small></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ========== 主畫面：賣蚵仔 ========== -->
+    <section class="screen on" id="screen-sell">
+      <div id="setup-hint" class="hint" style="display:none">
+        今天還沒設定「進貨幾斤」，所以算不出剩多少。
+        <button class="big go" style="padding:14px" onclick="go('setup')">👉 現在設定</button>
+      </div>
+
+      <button class="big mic" id="main-mic" onclick="startVoiceMain()">🎤 直接用說的（唸：誰　幾斤）</button>
+
+      <div class="section-label">或　點一下客人</div>
+      <div class="cust-grid" id="cust-grid"></div>
+      <div id="no-cust" class="footer-note" style="display:none">
+        還沒有客人名單。<br>請家人按右上角 ⚙️ →「客戶管理」先建立常客。
+      </div>
+    </section>
+
+    <!-- ========== 唸數量 ========== -->
+    <section class="screen" id="screen-qty">
+      <button class="back" onclick="go('sell')">‹ 回上一頁</button>
+      <div class="picked-name" id="q-name">客人</div>
+      <div id="q-call-wrap"></div>
+      <div class="qty-show num"><span id="q-val">0</span><span class="qty-unit" id="q-unit">斤</span></div>
+      <div class="amount-show num" id="q-amount">＝ $0</div>
+
+      <button class="big mic" id="qty-mic" onclick="startVoiceQty()">🎤 說　幾斤</button>
+
+      <div class="section-label" style="margin-top:16px">常用</div>
+      <div class="quick" id="quick-btns"></div>
+
+      <div class="section-label">或　按數字</div>
+      <div class="pad">
+        <button onclick="padPress('1')">1</button>
+        <button onclick="padPress('2')">2</button>
+        <button onclick="padPress('3')">3</button>
+        <button onclick="padPress('4')">4</button>
+        <button onclick="padPress('5')">5</button>
+        <button onclick="padPress('6')">6</button>
+        <button onclick="padPress('7')">7</button>
+        <button onclick="padPress('8')">8</button>
+        <button onclick="padPress('9')">9</button>
+        <button onclick="padPress('half')">半</button>
+        <button onclick="padPress('0')">0</button>
+        <button onclick="padPress('del')">⌫</button>
+      </div>
+
+      <div class="row2">
+        <button class="big stop" onclick="go('sell')">取消</button>
+        <button class="big go" onclick="toConfirm()">下一步 ✓</button>
+      </div>
+    </section>
+
+    <!-- ========== 選人（語音） ========== -->
+    <section class="screen" id="screen-pick">
+      <button class="back" onclick="go('sell')">‹ 回上一頁</button>
+      <div class="section-label">我聽到的是：</div>
+      <div class="picked-name" id="heard-text" style="color:var(--muted)">…</div>
+      <div class="qty-show num" style="min-height:auto;font-size:44px"><span id="pick-qty">?</span><span class="qty-unit">斤</span></div>
+      <div class="ask">是哪一位客人？</div>
+      <div class="cust-grid" id="pick-grid"></div>
+      <div class="divider"></div>
+      <button class="big stop" onclick="go('sell')">都不是，重來</button>
+    </section>
+
+    <!-- ========== 確認 ========== -->
+    <section class="screen" id="screen-confirm">
+      <div class="confirm-card">
+        <div class="cc-name" id="c-name">客人</div>
+        <div class="cc-qty num"><span id="c-qty">0</span> 斤</div>
+        <div class="cc-amt num">$<span id="c-amt">0</span></div>
+        <div class="cc-times" id="c-times"></div>
+      </div>
+      <div class="ask">這樣對嗎？</div>
+      <div class="row2">
+        <button class="big stop" onclick="go('sell')">✗ 重來</button>
+        <button class="big go" onclick="saveSale()">✓ 對，記下來</button>
+      </div>
+      <button class="big" style="background:#eae3d0;color:var(--ink);box-shadow:0 5px 0 var(--line);margin-top:12px"
+        onclick="editAmount()">改金額（特價／找零）</button>
+    </section>
+
+    <!-- ========== 家人選單 ========== -->
+    <section class="screen" id="screen-menu">
+      <button class="back" onclick="go('sell')">‹ 回賣蚵仔畫面</button>
+      <h2 class="title">家人設定</h2>
+      <div class="menu-list">
+        <button onclick="go('setup')"><span class="ico">💰</span>這趟設定（單價・進貨・開新一趟）</button>
+        <button onclick="go('report')"><span class="ico">📋</span>今日報表</button>
+        <button onclick="go('history')"><span class="ico">📅</span>歷史報表（昨天・本週）</button>
+        <button onclick="go('customers')"><span class="ico">👥</span>客戶管理</button>
+        <button onclick="go('backup')"><span class="ico">💾</span>備份 / 還原</button>
+      </div>
+    </section>
+
+    <!-- ========== 這趟設定 ========== -->
+    <section class="screen" id="screen-setup">
+      <button class="back" onclick="go('menu')">‹ 回設定</button>
+      <h2 class="title">這趟設定</h2>
+      <div class="field">
+        <label>一斤賣多少錢（單價）</label>
+        <input class="num" type="number" inputmode="numeric" id="in-price" placeholder="例如 120">
+      </div>
+      <div class="field">
+        <label>這趟進貨總共幾斤（訂正用，不會清顏色）</label>
+        <input class="num" type="number" inputmode="decimal" id="in-inv" placeholder="例如 40">
+      </div>
+      <div class="footer-note" id="setup-info"></div>
+      <button class="big go" onclick="saveSetup()">儲存</button>
+      <div class="divider"></div>
+      <div class="section-label">拿到新一批貨時</div>
+      <div class="footer-note" style="text-align:left;margin-top:0">
+        按下面這顆＝開始新的一趟：把所有客人清成「未收」、剩餘重算成新的進貨量。過去的交易紀錄都會保留在報表裡。
+      </div>
+      <button class="big" style="background:var(--gold);color:#3a2a05;box-shadow:0 5px 0 #9c6f1e" onclick="startNewRound()">🦪 進新貨・開新一趟</button>
+    </section>
+
+    <!-- ========== 客戶管理 ========== -->
+    <section class="screen" id="screen-customers">
+      <button class="back" onclick="go('menu')">‹ 回設定</button>
+      <h2 class="title">客戶管理</h2>
+      <div class="field">
+        <label>名字（會顯示在大按鈕上）</label>
+        <input id="c-in-name" placeholder="例如 阿美">
+      </div>
+      <div class="field">
+        <label>叫錯也算（別名，用逗號分開，可留空）</label>
+        <input class="small" id="c-in-alias" placeholder="例如 王阿美,美姐,賣菜的">
+      </div>
+      <div class="field">
+        <label>電話（可留空）</label>
+        <input class="small num" type="tel" inputmode="tel" id="c-in-phone" placeholder="09xx-xxx-xxx">
+      </div>
+      <div class="row2" style="margin-bottom:8px">
+        <button class="big stop" id="c-cancel" onclick="clearCustForm()" style="display:none">取消編輯</button>
+        <button class="big go" id="c-save" onclick="saveCustomer()" style="grid-column:1 / -1">➕ 新增客人</button>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">目前客人</div>
+      <div id="cust-manage-list"></div>
+    </section>
+
+    <!-- ========== 今日報表 ========== -->
+    <section class="screen" id="screen-report">
+      <button class="back" onclick="go('menu')">‹ 回設定</button>
+      <h2 class="title">今日報表 <span id="rep-date" class="num" style="font-size:18px;color:var(--muted)"></span></h2>
+      <div class="report-sum">
+        <div class="rs"><div class="k">賣出金額</div><div class="v num">$<span id="rep-total">0</span></div></div>
+        <div class="rs" style="background:var(--gold)"><div class="k">賣出／剩下</div><div class="v num"><span id="rep-sold">0</span>／<span id="rep-remain">—</span>斤</div></div>
+      </div>
+      <div class="section-label">每位客人（今天）</div>
+      <div id="rep-by-cust"></div>
+      <div class="section-label">每一筆</div>
+      <div id="rep-tx"></div>
+      <div class="divider"></div>
+      <button class="big go" onclick="copyReport()">📄 複製報表（貼到 LINE）</button>
+      <textarea class="export" id="rep-text" readonly style="margin-top:12px"></textarea>
+    </section>
+
+    <!-- ========== 歷史報表 ========== -->
+    <section class="screen" id="screen-history">
+      <button class="back" onclick="go('menu')">‹ 回設定</button>
+      <h2 class="title">歷史報表</h2>
+      <div class="report-sum">
+        <div class="rs" style="background:var(--sea-2)">
+          <div class="k">昨天</div>
+          <div class="v num">$<span id="h-y-amt">0</span></div>
+          <div class="li-sub" style="color:#d7ece9;opacity:.9;margin-top:2px"><span id="h-y-jin" class="num">0</span> 斤</div>
+        </div>
+        <div class="rs" style="background:var(--gold)">
+          <div class="k">本週（週一起）</div>
+          <div class="v num">$<span id="h-w-amt">0</span></div>
+          <div class="li-sub" style="color:#fff;opacity:.9;margin-top:2px"><span id="h-w-jin" class="num">0</span> 斤</div>
+        </div>
+      </div>
+      <div class="section-label">本週客人排行</div>
+      <div id="h-rank"></div>
+      <div class="section-label">每日紀錄（點一下看明細）</div>
+      <div id="h-days"></div>
+      <div class="divider"></div>
+      <button class="big go" onclick="copyWeek()">📄 複製本週報表（貼到 LINE）</button>
+      <textarea class="export" id="h-week-text" readonly style="margin-top:12px"></textarea>
+    </section>
+
+    <!-- ========== 備份 / 還原 ========== -->
+    <section class="screen" id="screen-backup">
+      <button class="back" onclick="go('menu')">‹ 回設定</button>
+      <h2 class="title">備份 / 還原</h2>
+      <div class="footer-note" style="text-align:left">
+        資料存在這支手機的瀏覽器裡。換手機、清除瀏覽器資料前，請先「下載備份」。
+      </div>
+      <button class="big go" onclick="downloadBackup()" style="margin-bottom:12px">💾 下載備份檔</button>
+      <div class="divider"></div>
+      <div class="field">
+        <label>還原：選擇之前下載的備份檔</label>
+        <input class="small" type="file" id="restore-file" accept="application/json,.json">
+      </div>
+      <button class="big stop" onclick="restoreBackup()">⚠️ 用這個檔覆蓋現在的資料</button>
+      <div class="divider"></div>
+      <div class="section-label">客戶名單搬到另一個 app</div>
+      <div class="footer-note" style="text-align:left;margin-top:0">
+        只複製「客戶和電話」，不含交易紀錄。在有名單的 app 按「匯出」，換到另一個 app 按「匯入」，兩本帳各自獨立。
+      </div>
+      <button class="big go" onclick="exportCustomers()" style="margin-bottom:12px">📤 匯出客戶名單</button>
+      <div class="field">
+        <label>匯入：選擇匯出的客戶名單檔</label>
+        <input class="small" type="file" id="cust-import-file" accept="application/json,.json">
+      </div>
+      <button class="big" style="background:var(--sea);color:#fff;box-shadow:0 5px 0 #072526" onclick="importCustomers()">📥 匯入客戶名單（取代現有客戶）</button>
+      <div class="divider"></div>
+      <div class="section-label">測試用</div>
+      <div class="footer-note" style="text-align:left;margin-top:0">
+        清空後回到全新空白狀態：沒有客人、沒有任何紀錄、單價與進貨量歸零。無法復原，動作前請先下載備份。
+      </div>
+      <button class="big stop" onclick="clearAll()">🗑️ 清空全部資料（回到乾淨狀態）</button>
+    </section>
+
+  </main>
+</div>
+
+<div class="undo-bar" id="undo-bar">
+  <div class="max">
+    <div class="txt" id="undo-txt">已記錄</div>
+    <button onclick="undoLast()">撤銷</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 資料層 ================= */
+const KEY='oyster_db_v1';
+const DEFAULT={ customers:[], price:0, unit:'斤', round:{startTs:0, total:0}, tx:[], seeded:false };
+let DB = load();
+migrate();
+seedDemoIfFresh();
+
+function startOfTodayTs(){ const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+/* 舊版是以「日」為單位（DB.inventory）；改成以「一趟」為單位（DB.round）。自動搬移一次。 */
+function migrate(){
+  if(!DB.round || typeof DB.round.startTs!=='number'){
+    DB.round = { startTs: 0, total: 0 };
+  }
+  if(DB.inventory){
+    if((!DB.round.total || DB.round.total<=0) && typeof DB.inventory.total==='number' && DB.inventory.total>0){
+      DB.round.total = DB.inventory.total;
+      if(!DB.round.startTs) DB.round.startTs = startOfTodayTs();
+    }
+    delete DB.inventory;
+  }
+  save();
+}
+
+/* 第一次開啟、且完全沒資料時，塞入範例客戶方便測試（塞過一次就不再塞，不會蓋掉正式資料） */
+function seedDemoIfFresh(){
+  if(DB.seeded){ return; }
+  if(DB.customers.length===0 && DB.tx.length===0){
+    DB.customers=[
+      {id:uid(), name:'阿美', alias:['王阿美','美姐'], phone:''},
+      {id:uid(), name:'阿英', alias:['英仔','李阿英'], phone:''},
+      {id:uid(), name:'老王', alias:['隔壁老王','王桑'], phone:''},
+      {id:uid(), name:'阿福', alias:['福伯','福仔'], phone:''},
+      {id:uid(), name:'小玲', alias:['玲玲','林小玲'], phone:''},
+      {id:uid(), name:'阿珠', alias:['珠姨','陳阿珠'], phone:''}
+    ];
+    if(!DB.price) DB.price=120;
+    DB.round={startTs:startOfTodayTs(), total:40};
+  }
+  DB.seeded=true; save();
+}
+
+function load(){
+  try{ const r=JSON.parse(localStorage.getItem(KEY)); return r?Object.assign({},DEFAULT,r):structuredClone(DEFAULT); }
+  catch(e){ return structuredClone(DEFAULT); }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(DB)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+/* ================= 統計 ================= */
+function todayTx(){ const t=todayKey(); return DB.tx.filter(x=>x.date===t); }
+function todaySoldJin(){ return todayTx().reduce((s,x)=>s+x.jin,0); }
+function todayTotal(){ return todayTx().reduce((s,x)=>s+x.amount,0); }
+
+/* 以「一趟」為單位：只算這趟開始（round.startTs）之後的交易 */
+function roundTx(){ const s=DB.round.startTs||0; return DB.tx.filter(x=>x.ts>=s); }
+function roundSoldJin(){ return roundTx().reduce((s,x)=>s+x.jin,0); }
+function roundTotal(){ return roundTx().reduce((s,x)=>s+x.amount,0); }
+function remaining(){
+  if(!DB.round.total || DB.round.total<=0) return null;
+  return +(DB.round.total - roundSoldJin()).toFixed(2);
+}
+function custRoundStats(cid){
+  const s=DB.round.startTs||0;
+  const rows=DB.tx.filter(x=>x.cid===cid && x.ts>=s);
+  return { count:rows.length, jin:rows.reduce((a,x)=>a+x.jin,0), amount:rows.reduce((a,x)=>a+x.amount,0) };
+}
+function custTodayStats(cid){
+  const t=todayKey();
+  const rows=DB.tx.filter(x=>x.cid===cid && x.date===t);
+  return { count:rows.length, jin:rows.reduce((s,x)=>s+x.jin,0), amount:rows.reduce((s,x)=>s+x.amount,0) };
+}
+function custAllStats(cid){
+  const rows=DB.tx.filter(x=>x.cid===cid);
+  return { count:rows.length, jin:rows.reduce((s,x)=>s+x.jin,0), amount:rows.reduce((s,x)=>s+x.amount,0) };
+}
+function fmt(n){ return (Math.round(n*100)/100).toLocaleString('en-US'); }
+function fmtJin(n){ return (Math.round(n*100)/100).toString(); }
+
+/* ================= 畫面切換 ================= */
+const screens=['sell','qty','pick','confirm','menu','setup','customers','report','history','backup'];
+function el(id){ return document.getElementById(id); }
+function go(name){
+  screens.forEach(s=>document.getElementById('screen-'+s).classList.toggle('on', s===name));
+  window.scrollTo(0,0);
+  if(name==='sell') renderSell();
+  if(name==='setup') renderSetup();
+  if(name==='customers') renderCustomers();
+  if(name==='report') renderReport();
+  if(name==='history') renderHistory();
+  refreshBoard();
+}
+
+function refreshBoard(){
+  document.getElementById('b-sold').textContent=fmt(roundTotal());
+  const r=remaining();
+  document.getElementById('b-remain').textContent = (r===null)?'—':fmtJin(r);
+  document.getElementById('b-unit').textContent=DB.unit;
+}
+
+/* ================= 主畫面 ================= */
+function renderSell(){
+  const grid=document.getElementById('cust-grid');
+  grid.innerHTML='';
+  document.getElementById('no-cust').style.display = DB.customers.length?'none':'block';
+  document.getElementById('setup-hint').style.display =
+    (!DB.round.total || DB.round.total<=0 || DB.price<=0) ? 'block':'none';
+  DB.customers.forEach(c=>{
+    const st=custRoundStats(c.id);
+    const done=st.count>0;
+    const b=document.createElement('button');
+    b.className='cust'+(done?' done':'');
+    let inner='<div class="cust-name">'+(done?'<span class="mark">✓</span>':'<span class="dot"></span>')+escapeHtml(c.name)+'</div>';
+    if(done){ inner+='<div class="cust-sub">已收 '+fmtJin(st.jin)+DB.unit+'・$'+fmt(st.amount)+'</div>'; }
+    b.innerHTML=inner;
+    b.onclick=()=>pickCustomer(c.id);
+    grid.appendChild(b);
+  });
+  // 語音支援偵測
+  if(!speechOK){
+    document.getElementById('main-mic').style.display='none';
+    document.getElementById('qty-mic').style.display='none';
+  }
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ================= 選客人 → 數量 ================= */
+let curCust=null, curJin=0, curAmountOverride=null;
+
+function pickCustomer(cid){
+  curCust=DB.customers.find(c=>c.id===cid);
+  curJin=0; curAmountOverride=null;
+  document.getElementById('q-name').textContent=curCust.name;
+  document.getElementById('q-unit').textContent=DB.unit;
+  renderQCall();
+  renderQuick();
+  updateQty();
+  go('qty');
+}
+function renderQCall(){
+  const w=document.getElementById('q-call-wrap'); w.innerHTML='';
+  if(curCust && curCust.phone){
+    const a=document.createElement('a'); a.className='call-bar'; a.style.marginTop='4px';
+    a.href='tel:'+curCust.phone;
+    a.innerHTML='📞 撥打電話　<span class="num">'+escapeHtml(curCust.phone)+'</span>';
+    w.appendChild(a);
+  }
+}
+function renderQuick(){
+  const q=document.getElementById('quick-btns'); q.innerHTML='';
+  [1,2,3,5,10].forEach(n=>{
+    const b=document.createElement('button'); b.textContent=n+DB.unit;
+    b.onclick=()=>{ curJin=n; updateQty(); }; q.appendChild(b);
+  });
+  const bh=document.createElement('button'); bh.textContent='半'+DB.unit;
+  bh.onclick=()=>{ curJin=0.5; updateQty(); }; q.appendChild(bh);
+  const bc=document.createElement('button'); bc.textContent='清除'; bc.style.color='var(--stop)';
+  bc.onclick=()=>{ curJin=0; updateQty(); }; q.appendChild(bc);
+}
+let padBuf='';
+function padPress(k){
+  if(k==='del'){ padBuf=padBuf.slice(0,-1); }
+  else if(k==='half'){ if(!padBuf.includes('.')) padBuf=(padBuf||'0')+'.5'; }
+  else { if(k==='.'&&padBuf.includes('.'))return; padBuf+=k; }
+  curJin = padBuf===''?0:(parseFloat(padBuf)||0);
+  updateQty(true);
+}
+function updateQty(fromPad){
+  if(!fromPad) padBuf = curJin?String(curJin):'';
+  document.getElementById('q-val').textContent=fmtJin(curJin);
+  document.getElementById('q-amount').textContent='＝ $'+fmt(curJin*DB.price);
+}
+
+function toConfirm(){
+  if(!curCust){ toast('請先選客人'); return; }
+  if(curJin<=0){ toast('請先輸入斤數'); return; }
+  showConfirm();
+}
+function showConfirm(){
+  const amt = curAmountOverride!==null ? curAmountOverride : Math.round(curJin*DB.price);
+  document.getElementById('c-name').textContent=curCust.name;
+  document.getElementById('c-qty').textContent=fmtJin(curJin);
+  document.getElementById('c-amt').textContent=fmt(amt);
+  const st=custRoundStats(curCust.id);
+  document.getElementById('c-times').textContent =
+    st.count>0 ? ('這趟第 '+(st.count+1)+' 次　（已買 '+fmtJin(st.jin)+DB.unit+'）') : '這趟第一次';
+  go('confirm');
+  speak(curCust.name+'，'+fmtJin(curJin)+DB.unit+'，'+amt+'元，對嗎');
+}
+function editAmount(){
+  const cur = curAmountOverride!==null?curAmountOverride:Math.round(curJin*DB.price);
+  const v=prompt('這一筆實際收多少錢？', cur);
+  if(v===null) return;
+  const n=parseFloat(v);
+  if(isNaN(n)||n<0){ toast('金額不對'); return; }
+  curAmountOverride=Math.round(n);
+  showConfirm();
+}
+
+function saveSale(){
+  const amt = curAmountOverride!==null ? curAmountOverride : Math.round(curJin*DB.price);
+  const rec={ id:uid(), cid:curCust.id, cname:curCust.name, jin:curJin, amount:amt, date:todayKey(), ts:Date.now() };
+  DB.tx.push(rec); save();
+  if(navigator.vibrate) navigator.vibrate(60);
+  showUndo(curCust.name+' '+fmtJin(curJin)+DB.unit+' $'+fmt(amt)+'　已記錄');
+  curCust=null; curJin=0; curAmountOverride=null; padBuf='';
+  go('sell');
+}
+
+/* ================= 撤銷 ================= */
+let undoTimer=null;
+function showUndo(txt){
+  document.getElementById('undo-txt').textContent=txt;
+  const bar=document.getElementById('undo-bar'); bar.classList.add('on');
+  clearTimeout(undoTimer);
+  undoTimer=setTimeout(()=>bar.classList.remove('on'), 8000);
+}
+function undoLast(){
+  if(DB.tx.length===0) return;
+  const last=DB.tx.pop(); save();
+  document.getElementById('undo-bar').classList.remove('on');
+  toast('已撤銷：'+last.cname+' '+fmtJin(last.jin)+DB.unit);
+  refreshBoard();
+  if(document.getElementById('screen-sell').classList.contains('on')) renderSell();
+  if(document.getElementById('screen-report').classList.contains('on')) renderReport();
+}
+
+/* ================= 語音 ================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const speechOK = !!SR;
+let recog=null, recTarget=null;
+function makeRecog(){
+  const r=new SR(); r.lang='zh-TW'; r.interimResults=false; r.maxAlternatives=5; r.continuous=false;
+  return r;
+}
+function setMicRec(id,on){ const el=document.getElementById(id); if(el) el.classList.toggle('rec',on); }
+
+function startVoiceQty(){
+  if(!speechOK){ toast('這支手機不支援語音，請用數字鍵'); return; }
+  recTarget='qty'; runRecog('qty-mic');
+}
+function startVoiceMain(){
+  if(!speechOK){ toast('這支手機不支援語音，請點客人'); return; }
+  if(DB.customers.length===0){ toast('請家人先建立客戶名單'); return; }
+  recTarget='main'; runRecog('main-mic');
+}
+function runRecog(micId){
+  try{ recog&&recog.abort(); }catch(e){}
+  recog=makeRecog(); setMicRec(micId,true);
+  let done=false;
+  recog.onresult=(e)=>{
+    done=true; setMicRec(micId,false);
+    const alts=[]; for(let i=0;i<e.results[0].length;i++) alts.push(e.results[0][i].transcript);
+    if(recTarget==='qty') handleQtyVoice(alts);
+    else handleMainVoice(alts);
+  };
+  recog.onerror=(e)=>{ setMicRec(micId,false); if(!done){ if(e.error==='no-speech') toast('沒聽到聲音，再說一次'); else if(e.error==='not-allowed') toast('請允許使用麥克風'); else toast('再說一次'); } };
+  recog.onend=()=>{ setMicRec(micId,false); };
+  try{ recog.start(); }catch(e){ setMicRec(micId,false); toast('麥克風忙碌，再按一次'); }
+}
+
+function handleQtyVoice(alts){
+  for(const t of alts){ const j=extractJin(t); if(j!==null){ curJin=j; updateQty(); return; } }
+  toast('沒聽清楚，請說「幾斤」或用數字鍵');
+}
+function handleMainVoice(alts){
+  // 用第一個能拆出東西的結果
+  let best=null;
+  for(const t of alts){ const p=parseSpeech(t); if(p.jin!==null || p.name){ best=p; best.raw=t; break; } }
+  if(!best){ best={name:alts[0]||'', jin:null, raw:alts[0]||''}; }
+  document.getElementById('heard-text').textContent = best.raw||'（沒聽到）';
+  document.getElementById('pick-qty').textContent = best.jin!==null?fmtJin(best.jin):'?';
+  pendingJin = best.jin;
+  // 名字模糊比對，列候選
+  const ranked = rankCustomers(best.name);
+  const grid=document.getElementById('pick-grid'); grid.innerHTML='';
+  const show = ranked.slice(0,4);
+  (show.length?show:DB.customers.slice(0,4)).forEach(c=>{
+    const b=document.createElement('button'); b.className='cust';
+    b.innerHTML='<span class="dot"></span>'+escapeHtml(c.name);
+    b.onclick=()=>chosenFromPick(c.id);
+    grid.appendChild(b);
+  });
+  go('pick');
+}
+let pendingJin=null;
+function chosenFromPick(cid){
+  curCust=DB.customers.find(c=>c.id===cid);
+  curAmountOverride=null;
+  if(pendingJin!==null && pendingJin>0){ curJin=pendingJin; showConfirm(); }
+  else { curJin=0; document.getElementById('q-name').textContent=curCust.name;
+    document.getElementById('q-unit').textContent=DB.unit; renderQCall(); renderQuick(); updateQty(); go('qty'); }
+}
+
+/* ---- 中文數字解析 ---- */
+function chineseToNumber(str){
+  str=(str||'').replace(/[斤台公觔市\s]/g,'');
+  let half=false;
+  if(str.includes('半')){ half=true; str=str.replace(/半/g,''); }
+  const arab=str.match(/\d+(\.\d+)?/);
+  if(arab){ let n=parseFloat(arab[0]); if(half) n+=0.5; return n; }
+  if(str===''){ return half?0.5:null; }
+  const d={'零':0,'〇':0,'一':1,'二':2,'兩':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'幾':1};
+  const u={'十':10,'百':100,'千':1000};
+  let total=0, cur=0, any=false;
+  for(const ch of str){
+    if(ch in d){ cur=d[ch]; any=true; }
+    else if(ch in u){ const uu=u[ch]; if(uu===10&&cur===0)cur=1; total+=(cur||1)*uu; cur=0; any=true; }
+  }
+  if(!any) return half?0.5:null;
+  total+=cur; if(half) total+=0.5;
+  return total>0?total:(half?0.5:null);
+}
+const NUMCH='0123456789零〇一二兩两三四五六七八九十百千半幾';
+function extractJin(text){
+  text=(text||'').replace(/\s/g,'');
+  const idx=text.indexOf('斤');
+  if(idx>=0){
+    let j=idx-1, ns='';
+    while(j>=0 && NUMCH.includes(text[j])){ ns=text[j]+ns; j--; }
+    let after=''; if(text[idx+1]==='半') after='半';
+    const val=chineseToNumber(ns+after);
+    if(val!==null) return val;
+  }
+  // 沒有「斤」：抓阿拉伯數字
+  const a=text.match(/\d+(\.\d+)?/);
+  if(a) return parseFloat(a[0]);
+  // 純中文數字（無斤）
+  const c=chineseToNumber(text);
+  return c;
+}
+function parseSpeech(text){
+  text=(text||'').replace(/\s/g,'');
+  let jin=null, name=text;
+  const idx=text.indexOf('斤');
+  if(idx>=0){
+    let j=idx-1, ns='';
+    while(j>=0 && NUMCH.includes(text[j])){ ns=text[j]+ns; j--; }
+    let after=''; if(text[idx+1]==='半') after='半';
+    jin=chineseToNumber(ns+after);
+    name=(text.slice(0,j+1)+text.slice(idx+1+(after?1:0)));
+  } else {
+    const a=text.match(/\d+(\.\d+)?/);
+    if(a){ jin=parseFloat(a[0]); name=text.replace(a[0],''); }
+  }
+  name=name.replace(/[買賣要給的了斤半]/g,'').trim();
+  return {name, jin};
+}
+
+/* ---- 名字模糊比對 ---- */
+function rankCustomers(query){
+  query=(query||'').replace(/\s/g,'');
+  if(!query) return DB.customers.map(c=>({...c,_s:0}));
+  return DB.customers.map(c=>{
+    const cands=[c.name,...(c.alias||[])];
+    let s=0; cands.forEach(x=>{ s=Math.max(s, sim(query,x)); });
+    return {...c,_s:s};
+  }).sort((a,b)=>b._s-a._s);
+}
+function sim(a,b){
+  a=(a||'').replace(/\s/g,''); b=(b||'').replace(/\s/g,'');
+  if(!a||!b) return 0;
+  if(a===b) return 1;
+  if(a.includes(b)||b.includes(a)) return 0.92;
+  const sa=new Set(a), sb=new Set(b); let common=0; sa.forEach(c=>{ if(sb.has(c))common++; });
+  const overlap=common/Math.max(sa.size,sb.size);
+  const lev=1-levenshtein(a,b)/Math.max(a.length,b.length);
+  return Math.max(overlap*0.85, lev*0.75);
+}
+function levenshtein(a,b){
+  const m=a.length,n=b.length; const dp=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++)dp[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)
+    dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return dp[m][n];
+}
+
+/* ---- 朗讀 ---- */
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window))return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text); u.lang='zh-TW'; u.rate=0.92; u.pitch=1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ================= 這趟設定 ================= */
+function renderSetup(){
+  document.getElementById('in-price').value = DB.price||'';
+  document.getElementById('in-inv').value = (DB.round.total>0)?DB.round.total:'';
+  const info=document.getElementById('setup-info');
+  const started = DB.round.startTs>0 && DB.round.total>0;
+  info.textContent = started
+    ? ('這趟已賣 '+fmtJin(roundSoldJin())+DB.unit+'，剩 '+fmtJin(remaining())+DB.unit+'。改這裡只訂正數字，不會清顏色。')
+    : '還沒開始這一趟。填單價與進貨量後儲存，或按下面「開新一趟」。';
+}
+function saveSetup(){
+  const p=parseFloat(document.getElementById('in-price').value);
+  const inv=parseFloat(document.getElementById('in-inv').value);
+  if(!isNaN(p)&&p>=0) DB.price=Math.round(p);
+  if(!isNaN(inv)&&inv>=0){
+    DB.round.total=inv;
+    if(!DB.round.startTs) DB.round.startTs=startOfTodayTs();
+  }
+  save(); toast('已儲存'); go('sell');
+}
+function startNewRound(){
+  const v=prompt('開新一趟：這批新進貨總共幾斤？', DB.round.total||'');
+  if(v===null) return;
+  const inv=parseFloat(v);
+  if(isNaN(inv)||inv<0){ toast('斤數不對'); return; }
+  if(!confirm('要開始新的一趟嗎？\n所有客人會清成「未收」，剩餘重算成 '+fmtJin(inv)+DB.unit+'。\n（過去的交易紀錄都會保留在報表裡）')) return;
+  DB.round={ startTs:Date.now(), total:inv }; save();
+  toast('已開新一趟'); go('sell');
+}
+
+/* ================= 客戶管理 ================= */
+let editingCid=null;
+function renderCustomers(){
+  const box=document.getElementById('cust-manage-list'); box.innerHTML='';
+  if(DB.customers.length===0){ box.innerHTML='<div class="footer-note">還沒有客人，上面新增第一位。</div>'; }
+  DB.customers.forEach(c=>{
+    const s=custAllStats(c.id);
+    const div=document.createElement('div'); div.className='list-item';
+    div.style.flexDirection='column'; div.style.alignItems='stretch';
+
+    const top=document.createElement('div');
+    top.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:10px;';
+    top.innerHTML='<div><div class="li-main">'+escapeHtml(c.name)+'</div>'+
+      '<div class="li-sub num">累計 '+s.count+' 次・'+fmtJin(s.jin)+DB.unit+'</div></div>';
+    const act=document.createElement('div'); act.className='li-actions';
+    const e=document.createElement('button'); e.className='mini g'; e.textContent='改'; e.onclick=()=>editCustomer(c.id); act.appendChild(e);
+    const d=document.createElement('button'); d.className='mini r'; d.textContent='刪'; d.onclick=()=>delCustomer(c.id); act.appendChild(d);
+    top.appendChild(act);
+    div.appendChild(top);
+
+    if(c.phone){
+      const call=document.createElement('a'); call.className='call-bar'; call.href='tel:'+c.phone;
+      call.innerHTML='📞 撥打　<span class="num">'+escapeHtml(c.phone)+'</span>';
+      div.appendChild(call);
+    }
+    box.appendChild(div);
+  });
+}
+function saveCustomer(){
+  const name=document.getElementById('c-in-name').value.trim();
+  if(!name){ toast('請輸入名字'); return; }
+  const alias=document.getElementById('c-in-alias').value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+  const phone=document.getElementById('c-in-phone').value.trim();
+  if(editingCid){
+    const c=DB.customers.find(x=>x.id===editingCid); c.name=name; c.alias=alias; c.phone=phone;
+  }else{
+    DB.customers.push({id:uid(), name, alias, phone});
+  }
+  save(); clearCustForm(); renderCustomers(); toast('已儲存');
+}
+function editCustomer(cid){
+  const c=DB.customers.find(x=>x.id===cid); editingCid=cid;
+  document.getElementById('c-in-name').value=c.name;
+  document.getElementById('c-in-alias').value=(c.alias||[]).join(',');
+  document.getElementById('c-in-phone').value=c.phone||'';
+  document.getElementById('c-save').textContent='✓ 儲存修改';
+  document.getElementById('c-cancel').style.display='block';
+  window.scrollTo(0,0);
+}
+function clearCustForm(){
+  editingCid=null;
+  document.getElementById('c-in-name').value='';
+  document.getElementById('c-in-alias').value='';
+  document.getElementById('c-in-phone').value='';
+  document.getElementById('c-save').textContent='➕ 新增客人';
+  document.getElementById('c-cancel').style.display='none';
+}
+function delCustomer(cid){
+  const c=DB.customers.find(x=>x.id===cid);
+  if(!confirm('要刪除「'+c.name+'」嗎？（過去的交易紀錄會保留）')) return;
+  DB.customers=DB.customers.filter(x=>x.id!==cid); save(); renderCustomers();
+}
+
+/* ================= 今日報表 ================= */
+function renderReport(){
+  document.getElementById('rep-date').textContent=todayKey();
+  document.getElementById('rep-total').textContent=fmt(todayTotal());
+  document.getElementById('rep-sold').textContent=fmtJin(todaySoldJin());
+  const r=remaining(); document.getElementById('rep-remain').textContent=(r===null)?'—':fmtJin(r);
+
+  // 每位客人
+  const map={};
+  todayTx().forEach(x=>{ (map[x.cid]=map[x.cid]||{name:x.cname,count:0,jin:0,amt:0}); map[x.cid].count++; map[x.cid].jin+=x.jin; map[x.cid].amt+=x.amount; });
+  const byc=document.getElementById('rep-by-cust'); byc.innerHTML='';
+  const arr=Object.values(map).sort((a,b)=>b.amt-a.amt);
+  if(arr.length===0) byc.innerHTML='<div class="footer-note">今天還沒有紀錄。</div>';
+  arr.forEach(m=>{
+    const div=document.createElement('div'); div.className='list-item';
+    div.innerHTML='<div class="li-main">'+escapeHtml(m.name)+'</div>'+
+      '<div class="li-sub num">'+m.count+' 次・'+fmtJin(m.jin)+DB.unit+'・$'+fmt(m.amt)+'</div>';
+    byc.appendChild(div);
+  });
+
+  // 每一筆
+  const txbox=document.getElementById('rep-tx'); txbox.innerHTML='';
+  const rows=todayTx().slice().sort((a,b)=>b.ts-a.ts);
+  if(rows.length===0) txbox.innerHTML='<div class="footer-note">今天還沒有紀錄。</div>';
+  rows.forEach(x=>{
+    const div=document.createElement('div'); div.className='list-item';
+    const tm=new Date(x.ts); const hh=String(tm.getHours()).padStart(2,'0')+':'+String(tm.getMinutes()).padStart(2,'0');
+    div.innerHTML='<div><div class="li-main">'+escapeHtml(x.cname)+'　'+fmtJin(x.jin)+DB.unit+'</div>'+
+      '<div class="li-sub num">'+hh+'　$'+fmt(x.amount)+'</div></div>';
+    const del=document.createElement('button'); del.className='mini r'; del.textContent='刪';
+    del.onclick=()=>{ if(confirm('刪除這一筆？')){ DB.tx=DB.tx.filter(t=>t.id!==x.id); save(); renderReport(); refreshBoard(); } };
+    div.appendChild(del); txbox.appendChild(div);
+  });
+
+  document.getElementById('rep-text').value=buildReportText();
+}
+function buildReportText(){
+  const d=new Date(); const md=(d.getMonth()+1)+'/'+d.getDate();
+  let s='🦪 蚵仔日報 '+md+'\n';
+  s+='今日賣出：$'+fmt(todayTotal())+'\n';
+  const r=remaining();
+  s+='賣出 '+fmtJin(todaySoldJin())+DB.unit+(r===null?'':('　剩 '+fmtJin(r)+DB.unit))+'\n';
+  s+='──────────\n';
+  const rows=todayTx().slice().sort((a,b)=>a.ts-b.ts);
+  rows.forEach(x=>{ s+=x.cname+'　'+fmtJin(x.jin)+DB.unit+'　$'+fmt(x.amount)+'\n'; });
+  return s;
+}
+function copyReport(){
+  const t=buildReportText();
+  navigator.clipboard?.writeText(t).then(()=>toast('已複製，去 LINE 貼上'),()=>{
+    document.getElementById('rep-text').select(); toast('請長按上面文字複製');
+  });
+}
+
+/* ================= 備份 / 還原 ================= */
+function downloadBackup(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='蚵仔記帳備份-'+todayKey()+'.json';
+  a.click(); URL.revokeObjectURL(a.href); toast('已下載備份');
+}
+function restoreBackup(){
+  const f=document.getElementById('restore-file').files[0];
+  if(!f){ toast('請先選擇檔案'); return; }
+  if(!confirm('確定用這個檔覆蓋目前資料？此動作無法復原。')) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const obj=JSON.parse(rd.result);
+      if(!obj.customers||!obj.tx) throw new Error('格式不符');
+      DB=Object.assign({},DEFAULT,obj); migrate(); toast('已還原'); go('sell');
+    }catch(e){ toast('檔案讀不出來'); }
+  };
+  rd.readAsText(f);
+}
+function clearAll(){
+  if(!confirm('確定要清空「全部」資料嗎？\n所有客人與紀錄都會消失，無法復原。')) return;
+  if(!confirm('最後確認：真的要全部清空、回到全新狀態？')) return;
+  DB=structuredClone(DEFAULT); DB.seeded=true; DB.round={startTs:0,total:0}; save();
+  toast('已清空，回到全新狀態'); go('sell');
+}
+function exportCustomers(){
+  if(DB.customers.length===0){ toast('目前沒有客戶可匯出'); return; }
+  const data={ type:'oyster_customers', v:1, customers:DB.customers };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='蚵仔客戶名單-'+todayKey()+'.json'; a.click(); URL.revokeObjectURL(a.href);
+  toast('已匯出 '+DB.customers.length+' 位客戶');
+}
+function importCustomers(){
+  const f=document.getElementById('cust-import-file').files[0];
+  if(!f){ toast('請先選擇檔案'); return; }
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const obj=JSON.parse(rd.result);
+      const list = obj.customers || (Array.isArray(obj)?obj:null);
+      if(!Array.isArray(list)) throw new Error('格式不符');
+      if(DB.customers.length>0 && !confirm('會用匯入的名單「取代」目前的客戶（交易紀錄不受影響）。要繼續嗎？')) return;
+      DB.customers = list.map(c=>({ id:c.id||uid(), name:String(c.name||'').trim(),
+        alias:Array.isArray(c.alias)?c.alias.filter(Boolean):[], phone:String(c.phone||'').trim() })).filter(c=>c.name);
+      DB.seeded=true; save(); toast('已匯入 '+DB.customers.length+' 位客戶'); go('customers');
+    }catch(e){ toast('檔案讀不出來'); }
+  };
+  rd.readAsText(f);
+}
+
+/* ================= 歷史報表 ================= */
+function pad2(n){ return String(n).padStart(2,'0'); }
+function keyOf(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function yesterdayKey(){ const d=new Date(); d.setDate(d.getDate()-1); return keyOf(d); }
+function weekStartKey(){ const d=new Date(); const off=(d.getDay()+6)%7; d.setDate(d.getDate()-off); return keyOf(d); }
+function rangeSum(pred){ const r=DB.tx.filter(pred); return {count:r.length, jin:r.reduce((s,x)=>s+x.jin,0), amt:r.reduce((s,x)=>s+x.amount,0)}; }
+function dispDate(dk){
+  const [Y,M,D]=dk.split('-').map(Number); const d=new Date(Y,M-1,D);
+  const wd=['日','一','二','三','四','五','六'][d.getDay()];
+  let tag=''; if(dk===todayKey())tag='　今天'; else if(dk===yesterdayKey())tag='　昨天';
+  return M+'/'+D+'（'+wd+'）'+tag;
+}
+function renderHistory(){
+  const y=rangeSum(x=>x.date===yesterdayKey());
+  const wk=weekStartKey(); const w=rangeSum(x=>x.date>=wk);
+  el('h-y-amt').textContent=fmt(y.amt); el('h-y-jin').textContent=fmtJin(y.jin);
+  el('h-w-amt').textContent=fmt(w.amt); el('h-w-jin').textContent=fmtJin(w.jin);
+
+  // 本週客人排行
+  const map={};
+  DB.tx.filter(x=>x.date>=wk).forEach(x=>{ (map[x.cid]=map[x.cid]||{name:x.cname,count:0,jin:0,amt:0}); map[x.cid].count++; map[x.cid].jin+=x.jin; map[x.cid].amt+=x.amount; });
+  const rank=Object.values(map).sort((a,b)=>b.amt-a.amt);
+  const rb=el('h-rank'); rb.innerHTML= rank.length?'':'<div class="footer-note">本週還沒有紀錄。</div>';
+  rank.forEach((m,i)=>{
+    const div=document.createElement('div'); div.className='list-item';
+    div.innerHTML='<div class="li-main">'+(i+1)+'. '+escapeHtml(m.name)+'</div>'+
+      '<div class="li-sub num">'+m.count+' 次・'+fmtJin(m.jin)+DB.unit+'・$'+fmt(m.amt)+'</div>';
+    rb.appendChild(div);
+  });
+
+  // 每日紀錄（可展開）
+  const byDay={}; DB.tx.forEach(x=>{ (byDay[x.date]=byDay[x.date]||[]).push(x); });
+  const days=Object.keys(byDay).sort().reverse();
+  const db=el('h-days'); db.innerHTML= days.length?'':'<div class="footer-note">還沒有任何紀錄。</div>';
+  days.forEach(dk=>{
+    const rows=byDay[dk];
+    const amt=rows.reduce((s,x)=>s+x.amount,0), jin=rows.reduce((s,x)=>s+x.jin,0);
+    const wrap=document.createElement('div');
+    const head=document.createElement('div'); head.className='list-item'; head.style.cursor='pointer';
+    head.innerHTML='<div><div class="li-main">'+dispDate(dk)+'</div>'+
+      '<div class="li-sub num">'+rows.length+' 筆・'+fmtJin(jin)+DB.unit+'</div></div>'+
+      '<div class="li-main num" style="color:var(--go-d)">$'+fmt(amt)+' ▾</div>';
+    const detail=document.createElement('div'); detail.style.display='none'; detail.style.margin='-4px 0 12px';
+    head.onclick=()=>{
+      const open=detail.style.display==='none';
+      detail.style.display=open?'block':'none';
+      if(open && !detail.dataset.built){ detail.appendChild(buildDayDetail(rows)); detail.dataset.built='1'; }
+    };
+    wrap.appendChild(head); wrap.appendChild(detail); db.appendChild(wrap);
+  });
+
+  el('h-week-text').value=buildWeekText();
+}
+function buildDayDetail(rows){
+  const frag=document.createElement('div');
+  frag.style.cssText='background:#fff;border:2px solid var(--line);border-top:none;border-radius:0 0 14px 14px;padding:4px 0;';
+  const map={};
+  rows.forEach(x=>{ (map[x.cid]=map[x.cid]||{name:x.cname,count:0,jin:0,amt:0}); map[x.cid].count++; map[x.cid].jin+=x.jin; map[x.cid].amt+=x.amount; });
+  Object.values(map).sort((a,b)=>b.amt-a.amt).forEach(m=>{
+    const d=document.createElement('div');
+    d.style.cssText='padding:9px 14px;font-size:16px;font-weight:700;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:8px;';
+    d.innerHTML='<span>'+escapeHtml(m.name)+'</span><span class="num" style="color:var(--muted)">'+m.count+'次・'+fmtJin(m.jin)+DB.unit+'・$'+fmt(m.amt)+'</span>';
+    frag.appendChild(d);
+  });
+  return frag;
+}
+function buildWeekText(){
+  const wk=weekStartKey(); const rows=DB.tx.filter(x=>x.date>=wk); const w=rangeSum(x=>x.date>=wk);
+  let s='🦪 蚵仔週報\n本週賣出：$'+fmt(w.amt)+'\n賣出 '+fmtJin(w.jin)+DB.unit+'\n──────────\n';
+  const byDay={}; rows.forEach(x=>{ (byDay[x.date]=byDay[x.date]||[]).push(x); });
+  Object.keys(byDay).sort().forEach(dk=>{
+    const r=byDay[dk]; const a=r.reduce((s,x)=>s+x.amount,0), j=r.reduce((s,x)=>s+x.jin,0);
+    s+=dispDate(dk).replace(/　今天|　昨天/,'')+'　'+fmtJin(j)+DB.unit+'　$'+fmt(a)+'\n';
+  });
+  return s;
+}
+function copyWeek(){
+  const t=buildWeekText();
+  navigator.clipboard?.writeText(t).then(()=>toast('已複製，去 LINE 貼上'),()=>{ el('h-week-text').select(); toast('請長按上面文字複製'); });
+}
+
+/* ================= Toast ================= */
+let toastTimer=null;
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),2200);
+}
+
+/* ================= 啟動 ================= */
+go('sell');
+</script>
+</body>
+</html>
